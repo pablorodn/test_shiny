@@ -1,0 +1,3596 @@
+
+
+if(Sys.info()[1]=="Windows"){
+  if(!require('jsonlite')) install.packages('rjson', repos='http://cran.us.r-project.org', dependencies = T )
+  if(!require('httr')) install.packages('rjson', repos='http://cran.us.r-project.org', dependencies = T )
+  if(!require('stringi')) install.packages('stringi', repos='http://cran.us.r-project.org', dependencies = T )
+  
+}
+
+
+
+library(maditr)
+library(aws.s3)
+library(htmlTable)
+library(shinyWidgets)
+library(readr)
+library(beepr)
+library(shiny)
+library(shinyalert)
+library(reticulate)
+library(RMySQL)
+library(doBy)
+library(DT)
+library(plyr)
+library(dplyr)
+library(osrm)
+library(fresh)
+library(glue)
+library(jsonlite)
+library(lubridate)
+library(stringi)
+library(bs4Dash)
+library(DBI)
+library(expss)
+library(readxl)
+library(shinyjs)
+library(writexl)
+library(stringr)
+library(shinyTime)
+library(shinybusy)
+library(gtools)
+library(tidyr)
+library(sjmisc)
+library(leaflet)
+library(anytime)
+
+
+{
+
+'%ni%'=Negate('%in%')
+source(file = glue("{getwd()}/get_query.R"), local=TRUE)
+{
+  dw_aux <- read_excel(glue("{getwd()}/dw_aux.xlsx"))
+  rates <- read_excel(glue("{getwd()}/rates.xlsx"))
+  
+  
+  # Generar dataset con los estados y sus colores.
+  
+  s_status=c('Validation','Initiated','Enrutado','In Progress','Alistado',
+             'Dispatched','Delivered','Cancelled')
+  status_order=data.frame("s_status"=c('Validation','Initiated','Enrutado','In Progress',"V. Faltantes",'Alistado',
+                                       'Dispatched','Delivered','Cancelled',"V. PSE"),
+                          "status_names"=c("Validación","Iniciado","Enrutado","En Progreso","V. Faltantes",
+                                           "Alistado","Dispatched","Delivered","Cancelled","Validación PSE"),
+                          "colors"=c("#F0F58B","#42D5D5","#FAE094","#FABB94","#AEBCF3","#DF8CF1","#8CEAF1",
+                                     "#B1FABA","#F18C8C","#EDD28F"))
+  
+  
+  
+  fj=1
+  cron_parameter=1
+  pass<<-0
+  dst_parameter=90
+  pass_cost<<-F
+  {
+    map_parameters=function(vehicles,shoppers_availiability){
+      
+      
+      result=status_shoppers(shoppers_availiability$plate,2)
+      orders=result[[1]]
+      vehicles$status="free"
+      vehicles[which(vehicles$plate %in% orders$plate),"status"]="busy"
+      info_vehicles=get_vehicles_data(vehicles$plate)
+      vehicles$phone=vlookup(vehicles$plate,info_vehicles,"phone","plate")
+      vehicles$transporter=vlookup(vehicles$plate,info_vehicles,"id","plate")
+      vehicles$transporter=vlookup(vehicles$transporter,transporters,3,1)
+
+      orders=orders %>% 
+        group_by(plate) %>%
+        dplyr::summarise(orders=n(),.groups = 'drop')
+      
+      vehicles$dispatched_orders=vlookup(vehicles$plate,orders,2,1)
+      vehicles$dispatched_orders=paste0("<b>Pedidos: </b>",vehicles$dispatched_orders)
+      vehicles[which(vehicles$dispatched_orders=="<b>Pedidos: </b>NA"),"dispatched_orders"]=''
+      vehicles$phone=gsub(" ","",vehicles$phone)
+      
+      
+      vehicles$content<- paste(sep = "<br/>",
+                               paste0('<b>',vehicles$plate,'</b>'),
+                               vehicles$transporter,
+                               vehicles$dispatched_orders,
+                               paste0('<a href="https://api.whatsapp.com/send?phone=57%20',vehicles$phone,'&amp;text=Logística Merqueo" target="_blank">wsp</a>')
+      )
+      vehicles$icon="motorcycle"
+      vehicles[which(vehicles$type=="N300"),"icon"]='shuttle-van'
+      vehicles[which(vehicles$type=="LUV"),"icon"]='truck-pickup'
+      vehicles[which(vehicles$type=="NHR"),"icon"]='truck'
+      vehicles$transporter=paste(vehicles$transporter,vehicles$type,sep="-")
+      
+      result[[3]]=vehicles
+      return(result)
+      
+    }
+    
+    hour_fix=function(minutes){
+      
+      parameter=which(is.na(minutes)==F)
+      if(length(parameter)>0){
+        parameter=which(minutes>=90)
+        no_parameter=which(minutes<90)
+        
+        if(length(parameter)>0){
+          minutes[parameter]=paste0(round(as.numeric(minutes[parameter])/60,1)," Hrs")
+          if(length(no_parameter)>0){
+            minutes[no_parameter]=paste0(round(as.numeric(minutes[no_parameter]),1)," Mins")
+          }
+        }else{
+          minutes[no_parameter]=paste0(round(as.numeric(minutes[no_parameter]),1)," Mins")
+        }
+      }
+      minutes[which(is.na(minutes)==T)]="✓"
+      return(minutes)
+    }
+    space_fix=function(df){
+      for(i in 1:nrow(df)){
+        
+        parameter=which(df[i,]!="✓")
+        if(length(parameter)>0){
+          if(max(parameter)!=ncol(df)){
+            parameter=(max(parameter)+1):ncol(df)
+            df[i,parameter]=""
+          }
+        }
+        
+      }
+      return(df)
+    }
+    
+    shopper_qry="select * from drivers.shoppers_availability sa
+WHERE (sa.date BETWEEN 'FECHA_INICIO' AND 'FECHA_FIN')"
+    pickers_qry="SELECT * FROM shiny_server.fast_picking AS fp WHERE DATE(fp.systime) = DATE(DATE_SUB(NOW(),INTERVAL 5 HOUR))"
+    time_stages=function(total_df,df_express,s_t,status_order,dw_aux){
+      
+      parameter=which(df_express$status=="Alistado" & df_express$Not_Available>0)
+      #df_express[is.na(df_express)]=""
+      df_express$user_address=paste(df_express$user_address,df_express$user_address_neighborhood,df_express$user_address_further,sep="/")
+      df_express$ticket=printCurrency(df_express$ticket)
+      df_express$ticket=paste(df_express$ticket,df_express$payment_method,sep="-")
+      parameter=which(df_express$store_id!=65 & is.na(df_express$plate)==F)
+      if(length(parameter)>0){
+        df_express[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',df_express$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',df_express$plate[parameter],'</a>')
+      }
+      
+      parameter=which(df_express$store_id==65 & is.na(df_express$plate)==F)
+      
+      
+      if(length(parameter)>0){
+        df_express[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=52%20',df_express$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',df_express$plate[parameter],'</a>')
+      }
+      
+      
+      parameter=which(df_express$store_id==281 & is.na(df_express$plate)==F)
+      
+      
+      if(length(parameter)>0){
+        df_express[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=55%20',df_express$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',df_express$plate[parameter],'</a>')
+      }
+      
+      parameter=which(df_express$shifts=="ER")
+      if(length(parameter)>0){
+        temp=df_express[parameter,]
+        temp$parameter=vlookup(temp$delivery_time,dw_aux,"end",1)
+        temp=temp[is.na(temp$parameter)==F,]
+        if(nrow(temp)>0){
+          temp$delivery_date=paste0(substr(temp$delivery_date,1,10)," ",temp$parameter,":00:00")
+          parameter=which(df_express$order_id %in% temp$order_id)
+          df_express[parameter,"delivery_date"]=vlookup(df_express$order_id[parameter],temp,"delivery_date","order_id")
+        }
+      }
+      
+      
+      df_express$username=paste(df_express$username,df_express$user_phone,sep="-")
+      df_express$transporter=vlookup(df_express$transporter,transporters,"fullname","name")
+      df_express$driver=paste(df_express$driver,df_express$phone,df_express$transporter,sep="-")
+      df_express$driver=gsub("--","",df_express$driver)
+      df_express$shifts=paste(df_express$shifts,df_express$delivery_time,sep="-")
+      df_express$minutes=as.numeric(as.numeric(df_express$delivery_time_minutes) - round(as.numeric(base::difftime(s_t,as.POSIXct(df_express$created_at),units='mins')),0))
+      df_express[,"minutes"]=as.numeric(base::difftime(as.POSIXct(df_express$delivery_date),s_t,units='mins'))
+      #df_express[which(df_express$status%in%c("Delivered","Cancelled")),"minutes"]=""
+      df_express$created_at=trimws(format(as.POSIXct(df_express$created_at),"%k:%M %p"))
+      #df_express$order_id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',df_express$order_id,'/details" target="_blank">',df_express$order_id,'</a>')
+      df_express$status=vlookup(df_express$status,status_order,"status_names","s_status")
+      
+      df_express$percentage=(df_express$Items-df_express$Pending)/df_express$Items
+      df_express$avance=paste0((df_express$Items-df_express$Pending),"/",df_express$Items," Ítems")
+      df_express[which(df_express$missing>0),"avance"]=paste0(df_express[which(df_express$missing>0),"avance"]," ",df_express[which(df_express$missing>0),"missing"]," Faltante(s)")  
+      parameter=which(df_express$Not_Available>0 & df_express$status=="Alistado")
+      if(length(parameter)>0){
+        df_express[parameter,"avance"]=paste0(df_express[parameter,"avance"]," ",df_express[which(df_express$Not_Available>0 & df_express$status=="Alistado"),"Not_Available"]," No Disponible(s)")
+      }
+      df_express$minutes=as.numeric(df_express$minutes)
+      df_express=df_express[order(df_express$minutes),]
+      #df_express[is.na(df_express)]=""
+      
+      df_express=select(df_express,order_id,status,created_at,minutes,shifts,percentage,avance)
+      
+      
+      total_df=dplyr::filter(total_df,status%ni%c("Cancelled","Delivered","Dispatched"))
+      
+      total_df$stage1=round(as.numeric(base::difftime(as.POSIXct(total_df$initiated),as.POSIXct(total_df$created_at),units ="mins")))
+      total_df$stage2=round(as.numeric(base::difftime(as.POSIXct(total_df$enrutado),as.POSIXct(total_df$initiated),units ="mins")))
+      total_df$stage3=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress),as.POSIXct(total_df$enrutado),units ="mins")))
+      total_df$stage4=round(as.numeric(base::difftime(as.POSIXct(total_df$alistado),as.POSIXct(total_df$in_progress),units ="mins")))
+      total_df$stage5=round(as.numeric(base::difftime(as.POSIXct(total_df$despachado),as.POSIXct(total_df$alistado),units ="mins")))
+      
+      if (nrow(total_df)>0) {
+        if (total_df$warehouse[1]=="San Simon" | total_df$warehouse[1]=="Vallejo" | total_df$warehouse[1]=="Guaymas") {
+          for (i in 1:nrow(total_df)) {
+            if (is.na(total_df$stage3[i])) {
+            }else{
+              if(total_df$stage3[i] < 0){
+                total_df$enrutado[i] <- as.character(as.POSIXct(total_df$enrutado[i]) - 3600)
+                total_df$stage2[i]=round(as.numeric(base::difftime(as.POSIXct(total_df$enrutado[i]),as.POSIXct(total_df$initiated[i]),units ="mins")))
+                total_df$stage3[i]=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress[i]),as.POSIXct(total_df$enrutado[i]),units ="mins")))
+              }
+            }
+          }
+        }
+      }
+      
+      total_df[which(total_df$status=="Validation"),"stage1"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$created_at[which(total_df$status=="Validation")]),units ="mins")))
+      total_df[which(total_df$status=="Initiated"),"stage2"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$initiated[which(total_df$status=="Initiated")]),units ="mins")))
+      total_df[which(total_df$status=="Enrutado"),"stage3"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$enrutado[which(total_df$status=="Enrutado")]),units ="mins")))
+      total_df[which(total_df$status=="In Progress"),"stage4"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$in_progress[which(total_df$status=="In Progress")]),units ="mins")))
+      total_df[which(total_df$status=="Alistado"),"stage5"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$alistado[which(total_df$status=="Alistado")]),units ="mins")))
+      parameter=which(is.na(total_df$enrutado) & is.na(total_df$pse))
+      if(length(parameter)>0){
+        total_df[parameter,"stage3"]=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress[parameter]),as.POSIXct(total_df$created_at[parameter]),units ="mins")))
+      }
+      parameter=which(total_df$status=="Enrutado" & is.na(total_df$in_progress)& is.na(total_df$pse))
+      if(length(parameter)>0){
+        total_df[parameter,"stage3"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$created_at[parameter]),units ="mins")))
+      }
+      parameter=which(total_df$status=="Initiated" & is.na(total_df$initiated) & total_df$payment_method!="Debito - PSE")
+      if(length(parameter)>0){
+        total_df[parameter,"stage2"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$created_at[parameter]),units ="mins")))
+      }
+      parameter=which(is.na(total_df$initiated) & total_df$payment_method=="Debito - PSE")
+      if(length(parameter)>0){
+        total_df[parameter,"stage1"]=round(as.numeric(base::difftime(as.POSIXct(total_df$pse[parameter]),as.POSIXct(total_df$created_at[parameter]),units ="mins")))}
+      parameter=which(total_df$status!="In Progress" & is.na(total_df$initiated) & total_df$payment_method=="Debito - PSE" & is.na(total_df$pse)==F)
+      if(length(parameter)>0){
+        total_df[parameter,"stage3"]=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress[parameter]),as.POSIXct(total_df$pse[parameter]),units ="mins")))}
+      parameter=which(total_df$status=="Validation"&is.na(total_df$pse))
+      if(length(parameter)>0){
+        total_df[parameter,"stage1"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$created_at[parameter]),units ="mins")))}
+      parameter=which(total_df$status=="In Progress"&is.na(total_df$pse)==F)
+      if(length(parameter)>0){
+        total_df[parameter,"stage3"]=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress[parameter]),as.POSIXct(total_df$pse[parameter]),units ="mins")))
+        total_df[parameter,"stage4"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$pse[parameter]),units ="mins")))}
+      if(length(parameter)>0){
+        parameter=which(is.na(total_df$enrutado)==F & is.na(total_df$pse)==F)
+        total_df[parameter,"stage3"]=round(as.numeric(base::difftime(as.POSIXct(total_df$in_progress[parameter]),as.POSIXct(total_df$enrutado[parameter]),units ="mins")))}
+      parameter=which(total_df$status=="Initiated" & is.na(total_df$pse)==F)
+      if(length(parameter)>0){
+        total_df[parameter,"stage2"]=round(as.numeric(base::difftime(s_t,as.POSIXct(total_df$pse[parameter]),units ="mins")))
+      }
+      stages=c("stage1","stage2","stage3","stage4","stage5")
+      stages=total_df[,stages]
+      colnames(stages)=c("Validación","Initiated","Enrutado","In Progress","Alistado")
+      stages=cbind("order_id"=total_df$order_id,stages)
+      parameter=which(stages$order_id %in% df_express$order_id)
+      if(length(parameter)>0){
+        stages=dplyr::inner_join(df_express,stages,"order_id")
+      }
+      
+      return(stages)
+    }
+    
+    shopper_plates=function(shopper_qry){
+      date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+      shopper_qry = gsub('FECHA_INICIO', date, shopper_qry)
+      shopper_qry = gsub('FECHA_FIN', date, shopper_qry)
+      shopper_availability=get_query("shiny",shopper_qry)
+      return(shopper_availability)
+    }
+    status_shoppers=function(shopper_availability,option){
+      date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+      
+      {
+        plates=paste("'",shopper_availability,"'",collapse=",",sep="")
+        if(option==1){
+          orders={paste0("select 
+o.id order_id,
+(t.fullname) transporter,
+w.warehouse,
+v.plate,
+o.status,
+if(o.onmyway_date IS NULL,o.dispatched_date,o.onmyway_date) dispatched_date,
+o.management_date,
+date(o.dispatched_date) date,
+dw.shifts,
+upper(concat(d.first_name,' ',d.last_name))driver,
+d.phone phone,
+og.user_address,
+og.user_address_latitude*1 user_address_latitude,
+og.user_address_longitude*1 user_address_longitude,
+o.total_amount+o.delivery_amount-o.discount_amount ticket,
+o.payment_method,
+og.user_address_further,
+og.user_phone,
+dw.delivery_time_minutes,
+o.created_at,
+o.planning_sequence,
+upper(concat(og.user_firstname,' ',og.user_lastname))username,
+og.user_address_neighborhood,
+t.id,
+v.class_type
+
+
+from merqueopro.orders o 
+inner join merqueopro.vehicles v on v.id=o.vehicle_id 
+inner join merqueopro.order_groups og on og.id=o.group_id
+inner join merqueopro.warehouses w on w.id=og.warehouse_id
+inner join merqueopro.drivers d on d.id=o.driver_id
+inner join merqueopro.transporters t on t.id=d.transporter_id
+inner join merqueopro.delivery_windows dw on dw.id=o.delivery_window_id
+WHERE (date(o.dispatched_date) BETWEEN 'FECHA_INICIO' AND 'FECHA_FIN')
+and v.plate in(",plates,")
+and o.type not in ('Marketplace')
+and dw.shifts in('EX','ER')
+group by o.id
+order by v.id")}
+        }else{
+          orders={paste0("select 
+o.id order_id,
+(t.fullname) transporter,
+w.warehouse,
+v.plate,
+o.status,
+if(o.onmyway_date IS NULL,o.dispatched_date,o.onmyway_date) dispatched_date,
+o.management_date,
+date(o.dispatched_date) date,
+dw.shifts,
+upper(concat(d.first_name,' ',d.last_name))driver,
+d.phone phone,
+og.user_address,
+og.user_address_latitude*1 user_address_latitude,
+og.user_address_longitude*1 user_address_longitude,
+o.total_amount+o.delivery_amount-o.discount_amount ticket,
+o.payment_method,
+og.user_address_further,
+og.user_phone,
+dw.delivery_time_minutes,
+o.created_at,
+o.planning_sequence,
+upper(concat(og.user_firstname,' ',og.user_lastname))username,
+og.user_address_neighborhood,
+t.id,
+v.class_type
+
+
+from merqueopro.orders o 
+inner join merqueopro.vehicles v on v.id=o.vehicle_id 
+inner join merqueopro.order_groups og on og.id=o.group_id
+inner join merqueopro.warehouses w on w.id=og.warehouse_id
+inner join merqueopro.drivers d on d.id=o.driver_id
+inner join merqueopro.transporters t on t.id=d.transporter_id
+inner join merqueopro.delivery_windows dw on dw.id=o.delivery_window_id
+WHERE (date(o.dispatched_date) BETWEEN 'FECHA_INICIO' AND 'FECHA_FIN')
+and v.plate in(",plates,")
+and o.status='Dispatched'
+and dw.shifts in('EX','ER')
+and o.type not in ('Marketplace')
+group by o.id
+order by v.id")}
+        }
+        orders = gsub('FECHA_INICIO', date, orders)
+        orders = gsub('FECHA_FIN', date, orders)
+        orders=get_query("prod",orders)
+        
+        
+        
+        
+      }
+      result=list()
+      result[[1]]=orders
+      return(result)
+    }
+    getVehicles=function(){
+      
+      if(as.character(Sys.info()[1])=="Darwin"){
+        
+        source_python(glue("{getwd()}/gatherDataFirebase.py"))
+        dataList <- gatherData()
+        
+      }else{
+        
+        setwd('..')
+        python_exe = paste0(getwd(), '/pyport/App/Python/python.exe')
+        use_python(python_exe, required = T)
+        
+        setwd('code/')
+        test = reticulate::import('gatherDataFirebase')
+        dataList = test$gatherData()
+        
+      }
+      
+      vehicles = jsonlite::fromJSON(dataList) 
+      
+      vehicles=vehicles[is.na(vehicles$driver)==FALSE,]
+      vehicles=vehicles[which(vehicles$driver!=""),]
+      
+      #vehicles=filter(vehicles,type=="MOTO")
+      
+      vehicles$lastUpdate=vehicles$last_update
+      vehicles$last_update=as.Date(vehicles$last_update,format="%d/%m/%Y")
+      vehicles$lastUpdate=gsub(" ","",substr(vehicles$lastUpdate,11,nchar(vehicles$lastUpdate)))
+      vehicles$lastUpdate=as.POSIXct(as.character(paste0(vehicles$last_update," ",vehicles$lastUpdate)))
+      date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+      vehicles=vehicles[which(vehicles$last_update==date),]
+      vehicles=vehicles[which(vehicles$lastUpdate>=(Sys.time()-60*60)),]
+      vehicles$lat_lon=paste(vehicles$lat,vehicles$lng,sep=",")
+      
+      
+      return(vehicles)}
+    get_vehicles_data=function(string){
+      string=paste0("'",string,"'")
+      string=paste(string,collapse = ",")
+      qry=paste0("select v.plate,d.phone,t.id from merqueopro.orders o 
+  inner join merqueopro.vehicles v on v.id=o.vehicle_id 
+  inner join merqueopro.drivers d on d.id=o.driver_id 
+  inner join merqueopro.transporters t on t.id=d.transporter_id
+  where v.plate in(",string,
+                 ") group by v.id")
+      qry=get_query("prod",qry) 
+      return(qry)
+    }
+    
+    
+    get_query_dwh=function(db,consulta){
+      condwh <- dbConnect(
+        dbDriver('PostgreSQL'), 
+        dbname = 'merqueo_dwh', 
+        host = eval(as.name(paste0('host_',db))), 
+        port = 10100,
+        user = eval(as.name(paste0('user_',db))),
+        password =eval(as.name(paste0('password_',db)))
+      )
+      if(exists("condwh")==TRUE){
+        dbGetQuery(condwh,"SET client_encoding = 'windows-1252'")
+      }
+      
+      consulta=dbGetQuery(condwh, consulta) 
+      dbDisconnect(condwh)
+      return(consulta)
+      
+    }
+    
+    qry_mc <- function(consulta){
+      conn <- try_default(dbConnect(
+        drv = RMySQL::MySQL(),
+        host =host_shiny,
+        username = user_shiny,
+        password = password_shiny),1,quiet = T)
+      if (toupper(Sys.info()[1][[1]]) != 'WINDOWS' ){
+        dbGetQuery(conn,"set names utf8")
+      }
+      #dbGetQuery(conn,"set names utf8")
+      consulta = try_default(dbGetQuery(conn,consulta),data.frame(Error = 'Fallo BD'), quiet = T)
+      try(dbDisconnect(conn),silent = T)
+      return(consulta)
+    }
+    
+    w_status=function(){
+      warehouses={"select * from merqueopro.warehouses w WHERE w.status =1
+and w.id in(2,5,6,15,124,139,201,216,247,371,381,463,563,579,580,563,592,693,742,380,843,884,949,928)
+      group by w.id"}   
+      w1=get_query("prod",warehouses)
+      w1$latitude=as.numeric(w1$latitude)
+      w1$longitude=as.numeric(w1$longitude)
+      return(w1)
+    }
+    
+    
+    
+    #Traer datos para renderizar el mapa
+    total_map_parameters=function(vehicles){
+      result=status_fleet(vehicles)
+      orders=result[[1]]
+      activities=result[[2]]
+      activities=dplyr::filter(activities,status=='In Progress')
+      vehicles$status="free"
+      vehicles[which(vehicles$plate %in% orders$plate),"status"]="busy"
+      vehicles$phone=vlookup(vehicles$plate,df_express,"phone","plate")
+      vehicles$transporter=vlookup(vehicles$plate,df_express,"transporter","plate")
+      vehicles$transporter=vlookup(vehicles$transporter,transporters,3,1)
+      orders=orders %>% 
+        group_by(plate) %>%
+        dplyr::summarise(orders=n(),.groups = 'drop')
+      if(nrow(activities)>0){
+        if(length(which(is.na(vlookup(vehicles$plate,activities$plate,1,1))==F))>0){
+          act_plates=vehicles[which(is.na(vlookup(vehicles$plate,activities$plate,1,1))==F),"plate"]
+          act_plates=data.frame("plate"=act_plates,"activity"=paste0("<b>Actividad: </b>",vlookup(act_plates,activities,"activity","plate")))
+        }
+      }
+      
+      vehicles$dispatched_orders=vlookup(vehicles$plate,orders,2,1)
+      vehicles$dispatched_orders=paste0("<b>Pedidos: </b>",vehicles$dispatched_orders)
+      vehicles[which(vehicles$dispatched_orders=="<b>Pedidos: </b>NA"),"dispatched_orders"]=''
+      vehicles$phone=gsub(" ","",vehicles$phone)
+      if(exists("act_plates")){
+        vehicles[which(vehicles$plate %in% act_plates$plate),"dispatched_orders"]=paste(vehicles[which(vehicles$plate %in% act_plates$plate),"dispatched_orders"], act_plates$activity,sep=" ")
+        vehicles[which(vehicles$plate %in% act_plates$plate),"status"]="busy"
+      }
+      
+      vehicles$content<- paste(sep = "<br/>",
+                               paste0('<b>',vehicles$plate,'</b>'),
+                               vehicles$transporter,
+                               vehicles$dispatched_orders,
+                               paste0('<a href="https://api.whatsapp.com/send?phone=57%20',vehicles$phone,'&amp;text=Logística Merqueo" target="_blank">wsp</a>')
+      )
+      vehicles$icon="motorcycle"
+      vehicles[which(vehicles$type=="N300"),"icon"]='shuttle-van'
+      vehicles[which(vehicles$type=="LUV"),"icon"]='truck-pickup'
+      vehicles[which(vehicles$type=="NHR"),"icon"]='truck'
+      vehicles$transporter=paste(vehicles$transporter,vehicles$type,sep="-")
+      
+      result[[3]]=vehicles
+      return(result)
+      
+    }
+    
+    #Traer datos
+    status_fleet=function(vehicles){
+      date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+      
+      {
+        plates=paste("'",vehicles$plate,"'",collapse=",",sep="")
+        {
+          orders=paste0("select 
+o.id order_id,
+(t.fullname) transporter,
+w.warehouse,
+v.plate,
+o.status,
+if(o.onmyway_date IS NULL,o.dispatched_date,o.onmyway_date) dispatched_date,
+o.management_date,
+date(o.dispatched_date) date,
+dw.shifts,
+upper(concat(d.first_name,' ',d.last_name))driver,
+d.phone phone,
+og.user_address,
+og.user_address_latitude*1 user_address_latitude,
+og.user_address_longitude*1 user_address_longitude,
+o.total_amount+o.delivery_amount-o.discount_amount ticket,
+o.payment_method,
+og.user_address_further,
+og.user_phone,
+dw.delivery_time_minutes,
+o.created_at,
+o.planning_sequence,
+upper(concat(og.user_firstname,' ',og.user_lastname))username,
+og.user_address_neighborhood,
+t.id,
+v.class_type,
+SUBSTRING(r.route,15,LENGTH(r.route)) route,
+o.delivery_time,
+dw.hour_start,
+dw.hour_end
+from merqueopro.orders o 
+inner join merqueopro.vehicles v on v.id=o.vehicle_id 
+inner join merqueopro.order_groups og on og.id=o.group_id
+inner join merqueopro.warehouses w on w.id=og.warehouse_id
+inner join merqueopro.drivers d on d.id=o.driver_id
+inner join merqueopro.routes r on r.id=o.route_id
+inner join merqueopro.transporters t on t.id=d.transporter_id
+inner join merqueopro.delivery_windows dw on dw.id=o.delivery_window_id
+WHERE (date(o.dispatched_date) BETWEEN 'FECHA_INICIO' AND 'FECHA_FIN')
+and o.status='Dispatched'
+and o.type not in ('Marketplace')
+group by o.id
+order by v.id")
+        }
+        orders = gsub('FECHA_INICIO', date, orders)
+        orders = gsub('FECHA_FIN', date, orders)
+        orders=get_query("prod",orders)
+        orders=filter(orders,plate%in%vehicles$plate)
+        qry=paste0("select * from drivers.activities a
+where a.date='",date,"' 
+                 group by a.id")
+        qry=get_query("shiny",qry)
+        qry=filter(qry,plate%in%vehicles$plate)
+        
+        
+        qry$phone=vlookup(qry$plate,df_express,"phone","plate")
+        
+      }
+      result=list()
+      result[[1]]=orders
+      result[[2]]=qry
+      return(result)
+    }
+    
+    warehouse_report=function(warehouse_df,s_t,status_order){
+      parameter=which(warehouse_df$status=="Alistado" & warehouse_df$Not_Available>0)
+      if(length(parameter)>0){
+        alistado=warehouse_df[parameter,]
+        warehouse_df=dplyr::filter(warehouse_df,status%in%c('Validation','Initiated','Enrutado','In Progress'))
+        warehouse_df=rbind(warehouse_df,alistado)
+      }else{
+        warehouse_df=dplyr::filter(warehouse_df,status%in%c('Validation','Initiated','Enrutado','In Progress'))
+      }
+      
+      if(nrow(warehouse_df)>0){
+        #warehouse_df[is.na(warehouse_df)]=""
+        warehouse_df$user_address=paste(warehouse_df$user_address,warehouse_df$user_address_neighborhood,warehouse_df$user_address_further,sep="/")
+        warehouse_df$ticket=printCurrency(warehouse_df$ticket)
+        warehouse_df$ticket=paste(warehouse_df$ticket,warehouse_df$payment_method,sep="-")
+        warehouse_df[which(is.na(warehouse_df$plate)==F),"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',warehouse_df$phone[which(is.na(warehouse_df$plate)==F)],'&amp;text=Logística Merqueo" target="_blank">',warehouse_df$plate[which(is.na(warehouse_df$plate)==F)],'</a>')
+        warehouse_df$username=paste(warehouse_df$username,warehouse_df$user_phone,sep="-")
+        warehouse_df$transporter=vlookup(warehouse_df$transporter,transporters,"fullname","name")
+        warehouse_df$driver=paste(warehouse_df$driver,warehouse_df$phone,warehouse_df$transporter,sep="-")
+        warehouse_df$driver=gsub("--","",warehouse_df$driver)
+        warehouse_df$shifts=paste(warehouse_df$shifts,warehouse_df$delivery_time,sep="-")
+        warehouse_df$minutes=as.numeric(warehouse_df$delivery_time_minutes-round(as.numeric(base::difftime(s_t,as.POSIXct(warehouse_df$created_at),units='mins')),0))
+        #warehouse_df[which(warehouse_df$status%in%c("Delivered","Cancelled")),"minutes"]=""
+        warehouse_df$created_at=trimws(format(as.POSIXct(warehouse_df$created_at),"%k:%M %p"))
+        warehouse_df$order_id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',warehouse_df$order_id,'/details" target="_blank">',warehouse_df$order_id,'</a>')
+        warehouse_df$status=vlookup(warehouse_df$status,status_order,"status_names","s_status")
+        warehouse_df=dplyr::select(warehouse_df,order_id,status,shifts,created_at,minutes,
+                                   ticket,Items,missing,Not_Available,Pending)
+        
+        warehouse_df$percentage=(warehouse_df$Items-warehouse_df$Pending)/warehouse_df$Items
+        warehouse_df$avance=paste0((warehouse_df$Items-warehouse_df$Pending),"/",warehouse_df$Items," Ítems")
+        warehouse_df[which(warehouse_df$missing>0),"avance"]=paste0(warehouse_df[which(warehouse_df$missing>0),"avance"]," ",warehouse_df[which(warehouse_df$missing>0),"missing"]," Faltante(s)")  
+        parameter=which(warehouse_df$Not_Available>0 & warehouse_df$status=="Alistado")
+        warehouse_df[parameter,"avance"]=paste0(warehouse_df[parameter,"avance"]," ",warehouse_df[which(warehouse_df$Not_Available>0 & warehouse_df$status=="Alistado"),"Not_Available"]," No Disponible(s)")
+        warehouse_df$minutes=as.numeric(warehouse_df$minutes)
+        warehouse_df=warehouse_df[order(warehouse_df$minutes),]
+        #warehouse_df[is.na(warehouse_df)]=""
+        warehouse_df=select(warehouse_df,order_id,status,shifts,created_at,minutes,ticket,
+                            percentage,avance)
+        
+      }
+      return(warehouse_df)
+    }
+    transport_report=function(transport_df,s_t,status_order,fleet_location,warehouses,dst_parameter){
+      if(nrow(transport_df)>0){
+        transport_df$dispatched_time=""
+        parameter=which(is.na(transport_df$dispatched_time)==F & transport_df$status=="Dispatched")
+        transport_df[parameter,"dispatched_time"]=hour_fix(round(base::difftime(as.POSIXct(s_t),as.POSIXct(transport_df$despachado[parameter]),units='mins')))
+        transport_df$lat_w=as.numeric(vlookup(transport_df$warehouse,warehouses,"latitude","warehouse"))
+        transport_df$lon_w=as.numeric(vlookup(transport_df$warehouse,warehouses,"longitude","warehouse"))
+        transport_df$lat_v=as.numeric(vlookup(transport_df$plate,fleet_location,"lat","plate"))
+        transport_df$lon_v=as.numeric(vlookup(transport_df$plate,fleet_location,"lng","plate"))
+        transport_df$dst_w=""
+        transport_df$dst_w[parameter]=round(dst_parameter*sqrt((transport_df$lat_w[parameter]-transport_df$lat_v[parameter])^2+(transport_df$lon_w[parameter]-transport_df$lon_v[parameter])^2),1)
+        transport_df[parameter,"dst_w"]=paste0(transport_df[parameter,"dst_w"],"Km")
+        transport_df$dst_o=""
+        transport_df$dst_o[parameter]=round(dst_parameter*sqrt((transport_df$user_address_latitude[parameter]-transport_df$lat_v[parameter])^2+(transport_df$user_address_longitude[parameter]-transport_df$lon_v[parameter])^2),1)
+        transport_df[parameter,"dst_o"]=paste0(transport_df[parameter,"dst_o"],"Km")
+        transport_df$user_address=paste(transport_df$user_address,transport_df$user_address_neighborhood,transport_df$user_address_further,sep="/")
+        transport_df$ticket=printCurrency(transport_df$ticket)
+        transport_df$ticket=paste(transport_df$ticket,transport_df$payment_method,sep="-")
+        parameter=which(transport_df$store_id!=65 & is.na(transport_df$plate)==F)
+        if(length(parameter)>0){
+          transport_df[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',transport_df$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',transport_df$plate[parameter],'</a>')
+        }
+        parameter=which(transport_df$store_id==65 & is.na(transport_df$plate)==F)
+        if(length(parameter)>0){
+          transport_df[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=52%20',transport_df$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',transport_df$plate[parameter],'</a>')
+        }
+        
+        parameter=which(transport_df$store_id==281 & is.na(transport_df$plate)==F)
+        if(length(parameter)>0){
+          transport_df[parameter,"plate"]=paste0('<a href="https://api.whatsapp.com/send?phone=55%20',transport_df$phone[parameter],'&amp;text=Logística Merqueo" target="_blank">',transport_df$plate[parameter],'</a>')
+        }
+        transport_df$username=paste(transport_df$username,transport_df$user_phone,sep="-")
+        transport_df$transporter=vlookup(transport_df$transporter,transporters,"fullname","name")
+        transport_df$driver=paste(transport_df$driver,transport_df$phone,transport_df$transporter,sep="-")
+        transport_df$driver=gsub("--","",transport_df$driver)
+        transport_df$shifts=paste(transport_df$shifts,transport_df$delivery_time,sep="-")
+        transport_df$minutes=as.numeric(transport_df$delivery_time_minutes-round(as.numeric(base::difftime(s_t,as.POSIXct(transport_df$created_at),units='mins')),0))
+        #transport_df[which(transport_df$status%in%c("Delivered","Cancelled")),"minutes"]=""
+        transport_df$created_at=trimws(format(as.POSIXct(transport_df$created_at),"%k:%M %p"))
+        transport_df$status=vlookup(transport_df$status,status_order,"status_names","s_status")
+        transport_df$order_id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',transport_df$order_id,'/details" target="_blank">',transport_df$order_id,'</a>')
+        
+        transport_df=dplyr::select(transport_df,order_id,warehouse,dispatched_time,dst_w,dst_o,shifts,created_at,minutes,
+                                   username,user_address,ticket,plate,driver,status)
+        
+        
+        transport_df$minutes=as.numeric(transport_df$minutes)
+        transport_df=transport_df[order(transport_df$minutes),]
+        #transport_df[is.na(transport_df)]=""
+        
+        transport_df$driver=gsub("NA","",transport_df$driver)
+      }
+      return(transport_df)
+    }
+    
+    printCurrency <- function(value, currency.sym="$", digits=0, sep=",", decimal=".") {
+      paste(
+        currency.sym,
+        formatC(value, format = "f", big.mark = sep, digits=digits, decimal.mark=decimal),
+        sep=""
+      )
+    }
+    shinyInputd <- function(FUN, len, id, ...) {
+      inputs <- character(len)
+      for (i in seq_len(len)) {
+        inputs[i] <- as.character(FUN(paste0(id, i), ...))
+      }
+      inputs
+    }
+    shinyInputg <- function(FUN, len, id, ...) {
+      input <- character(length(len))
+      for(i in 1:length(len)){
+        input[i] <- as.character(FUN(paste0(id,i), ...))
+      }
+      input
+    }
+    
+    
+    warehouses=w_status()
+    date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+    df_express={paste0("select 
+o.id order_id,
+w.warehouse,
+o.status,
+o.created_at,
+dw.shifts,
+og.user_address,
+og.user_address_latitude*1 user_address_latitude,
+og.user_address_longitude*1 user_address_longitude,
+o.total_amount+o.delivery_amount-o.discount_amount ticket,
+o.payment_method,
+og.user_address_further,
+og.user_phone,
+o.delivery_time,
+o.planning_sequence,
+upper(concat(og.user_firstname,' ',og.user_lastname))username,
+og.user_address_neighborhood,
+v.plate,
+dw.delivery_time_minutes,
+d.phone,
+upper(concat(d.first_name,' ',d.last_name))driver,
+t.fullname transporter,
+sum(IF(op.`type` != 'Agrupado',IF(op.quantity_original IS NULL, op.quantity, op.quantity_original),
+    IF(opg.quantity_original IS NULL, opg.quantity, opg.quantity_original)))Items,
+sum(IF(op.`type` != 'Agrupado',IF(op.quantity_original IS NULL, if(op.fulfilment_status='Missing',op.quantity,0),if(op.fulfilment_status='Missing',op.quantity_original,0)),
+    IF(opg.quantity_original IS NULL,if(opg.fulfilment_status='Missing',opg.quantity,0), if(op.fulfilment_status='Missing',opg.quantity_original,0))))missing,
+sum(IF(op.`type` != 'Agrupado',IF(op.quantity_original IS NULL, if(op.fulfilment_status='Not Available',op.quantity,0),if(op.fulfilment_status='Not Available',op.quantity_original,0)),
+    IF(opg.quantity_original IS NULL,if(opg.fulfilment_status='Not Available',opg.quantity,0), if(op.fulfilment_status='Not Available',opg.quantity_original,0)))) Not_Available,
+    sum(IF(op.`type` != 'Agrupado',IF(op.quantity_original IS NULL, if(op.fulfilment_status='Pending',op.quantity,0),if(op.fulfilment_status='Pending',op.quantity_original,0)),
+    IF(opg.quantity_original IS NULL,if(opg.fulfilment_status='Pending',opg.quantity,0), if(op.fulfilment_status='Pending',opg.quantity_original,0)))) Pending
+    
+
+from merqueopro.orders o 
+inner join merqueopro.order_groups og on og.id=o.group_id
+inner join merqueopro.warehouses w on w.id=og.warehouse_id
+INNER JOIN merqueopro.order_products op ON o.id = op.order_id 
+LEFT JOIN merqueopro.order_product_group opg ON opg.order_product_id = op.id
+INNER JOIN merqueopro.store_products sp ON sp.id = IF(op.`type`!='Agrupado',op.store_product_id,opg.store_product_id)
+inner join merqueopro.delivery_windows dw on dw.id=o.delivery_window_id
+left join merqueopro.vehicles v on v.id=o.vehicle_id
+left join merqueopro.drivers d on d.id=o.driver_id
+left join merqueopro.transporters t on t.id=d.transporter_id
+WHERE date(o.delivery_date)='",date,"'
+and o.type not in ('Marketplace')
+and o.store_id in(63,64,191,243,65)
+and dw.shifts in('EX','ER')
+group by o.id")}
+    transporters <- read_excel(glue("{getwd()}/transporters.xlsx"))
+    
+    country_city={"SELECT 
+   s.id,
+   s.city_id,
+   s.name,
+   c.city,
+   co.id AS country_id,
+   co.country,
+   s.status,
+   w.warehouse
+   FROM merqueopro.stores AS s
+   INNER JOIN merqueopro.cities AS c ON c.id = s.city_id
+   INNER JOIN merqueopro.countries AS co ON c.country_id = co.id
+   INNER JOIN merqueopro.warehouses AS w ON w.city_id = s.city_id"}
+    country_city=get_query("prod",country_city)
+  }
+}
+}
+options(shiny.fullstacktrace=TRUE)
+ui <- {bs4DashPage(
+  dashboardHeader(
+    title = ""
+  ),
+  sidebar = bs4DashSidebar(
+    skin = "light",
+    inputId = "sidebarState",
+    bs4SidebarMenu(
+      bs4SidebarHeader(""),
+      id = "sidebar",
+      br(),
+      h6("Operación Fast CEDIS v2.1"),
+      radioButtons("shift_type","",
+                   selected ="Todos",
+                   choices=c("EX","ER","Ultra","Todos"),
+                   inline=T
+      ),
+      selectInput(
+        "w_report",
+        label ="Bodega:",
+        choices =warehouses$warehouse,
+        selected = "Leopoldina"
+      ),
+      bs4SidebarMenuItem(
+        "Seguimiento FAST",
+        tabName = "opc2"),
+      bs4SidebarMenuItem(
+        "Seguimiento Fast+MD",
+        tabName = "opc4"),
+      bs4SidebarMenuItem(
+        "Solicitudes", tabName = "com"),
+      bs4SidebarMenuItem(
+        "Productos Agregados", 
+        tabName = "productos_agregados"),
+      dataTableOutput("status_request"),
+      br(),
+      dataTableOutput("status_df"),
+      br(),
+      h5("On Time"),
+      uiOutput("ot_ex"),
+      uiOutput("ot_ul"),
+      uiOutput("ot_er"),
+      uiOutput("ot_md"),
+      switchInput(inputId = "alert_toggle",label="Alertas", value = F),
+      uiOutput("hour_update")
+      
+      
+    )
+  ),
+  
+  footer = bs4DashFooter(),
+  title = "CEDIS EX/ER",
+  body = bs4DashBody(
+    use_theme(create_theme(
+      bs4dash_layout(
+        sidebar_width = "275px"
+      )
+    )),
+    bs4TabItems(
+      bs4TabItem(
+        tabName = "opc2",
+        uiOutput("title"),
+        br(),
+        tabsetPanel(
+          id = "tab_map",
+          side = "left",
+          tabPanel(
+            tabName ="Avance del Proceso", 
+            active = TRUE,
+            br(),
+            dataTableOutput("timereport")
+          ),
+          tabPanel(
+            tabName ="Mapa Alistado/Progreso", 
+            active = FALSE,
+            br(),
+            bs4Card(
+              title = "Mapa Alistado/Progreso",
+              width = 12,
+              status = "primary",
+              closable = FALSE,
+              maximizable = TRUE,
+              collapsible = FALSE,
+              leafletOutput("mymap_alistado",width = "100%", height = '800px')
+            )
+            
+          ),
+          tabPanel(
+            tabName ="Operación General", 
+            active = FALSE,
+            fluidRow(
+              column(1,
+                     br(),
+                     actionButton(
+                       'operation_report',
+                       'Actualizar',
+                       class = "btn btn-primary",
+                       style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                     ),
+              ),
+              column(6,
+                     br(),
+                     uiOutput("hour")#Hora Colombia
+              ),
+            ),
+            br(),
+            uiOutput("warehouse_ui"),
+            br(),
+            column(6,
+                   br(),
+                   uiOutput("hour_mx")
+            ),
+            br(),
+            uiOutput("warehouse_ui_mx")
+            
+          ),
+          tabPanel(
+            tabName ="Movimientos Shoppers", 
+            active = FALSE,
+            column(11,
+                   br(),
+                   column(1,actionButton(
+                     'update_shoppers',
+                     'Generar',
+                     class = "btn btn-primary",
+                     style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                   )
+                   ),
+                   uiOutput("ui_but_dl_r"),
+                   br(),
+                   bs4Card(
+                     title = "Reporte",
+                     width = 11,
+                     status = "warning",
+                     closable = FALSE,
+                     maximizable = TRUE,
+                     collapsible = FALSE,
+                     dataTableOutput("result_ot")
+                   )
+                   
+                   
+            ),
+            br()
+            
+          ),
+          tabPanel(
+            tabName ="Shoppers Disponibles", 
+            active = FALSE,
+            fluidRow(
+              br(),
+              column(2,
+                     br(),
+                     actionButton(
+                       'free_shoppers',
+                       'Generar',
+                       class = "btn btn-primary",
+                       style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                     )
+              )
+              
+            ),
+            br(),
+            fluidRow(
+              column(5,
+                     dataTableOutput("free_shoopers_df"),
+              ),
+              br(),
+              bs4Card(
+                title = "Bodega",
+                width = 6,
+                status = "warning",
+                closable = FALSE,
+                maximizable = TRUE,
+                collapsible = FALSE,
+                leafletOutput("free_shoopers_map",width = "100%", height = '700px')
+              )
+            )
+          ),
+          tabPanel(
+            tabName ="Mapa General", 
+            active = F,
+            fluidRow(
+              column(1,
+                     br(),
+                     actionButton(
+                       'total_map',
+                       'Actualizar',
+                       class = "btn btn-primary",
+                       style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                     ),
+              ),
+              column(2,
+                     radioButtons("op_status", "",
+                                  selected ="Todos",
+                                  choices=c("Todos","Libres","Ocupados"),
+                                  inline=F
+                     )
+              )
+            ),
+            br(),
+            fluidRow(
+              bs4Card(
+                title = "Mapa General",
+                width = 6,
+                status = "primary",
+                closable = FALSE,
+                maximizable = TRUE,
+                collapsible = FALSE,
+                leafletOutput("mymap",width = "100%", height = '800px')
+              ),
+              bs4Card(
+                title = "Reporte General",
+                width = 6,
+                status = "success",
+                closable = FALSE,
+                maximizable = TRUE,
+                collapsible = FALSE,
+                dataTableOutput("operation_df")
+              )
+            )
+          ),
+          tabPanel(
+            tabName ="Ontime", 
+            active = F,
+            div(htmlTableWidgetOutput("render_ontime",width = "60%", height = "400px"), style = "font-size:120%")
+            
+            
+          ),
+          tabPanel(
+            tabName ="Costeo Vehículos", 
+            active = F,
+            uiOutput("render_cost2"),
+            uiOutput("render_cost3"),
+            uiOutput("card_cost"),
+            uiOutput("save_button_cost")
+            
+            
+          )
+        )
+        
+      ),
+      bs4TabItem(
+        tabName = "opc3",
+        h2("Indicadores Productividad"),
+        br(),
+        uiOutput("pickers_ui"),
+        br()
+      ),
+      bs4TabItem(
+        tabName = "opc4",
+        h2("Seguimiento Fast+MD"),
+        br(),
+        tabsetPanel(
+          id = "opc4_md",
+          side = "left",
+          tabPanel(
+            tabName ="Avance del Proceso MD", 
+            active = T,
+            br(),
+            uiOutput("render_ui_md")
+          ),
+          tabPanel(
+            tabName ="Avance de Pedidos MD+Fast", 
+            active = F,
+            br(),
+            dataTableOutput("timereport_md")
+          ),
+          tabPanel(
+            tabName ="Mapa Alistado/Progreso Todos", 
+            active = FALSE,
+            br(),
+            bs4Card(
+              title = "Mapa Alistado/Progreso Todos",
+              width = 12,
+              status = "primary",
+              closable = FALSE,
+              maximizable = TRUE,
+              collapsible = FALSE,
+              leafletOutput("mymap_alistado_md",width = "100%", height = '800px')
+            )
+            
+          )
+        )
+        
+      ),
+      bs4TabItem(tabName = "com",
+                 fluidRow(
+                   column(6,
+                          h2("Solicitudes entre areas")
+                   ),
+                   column (6,
+                           selectInput("paises", label = "Seleccione el Pais",choices =unique(as.character(country_city$country)), selected = unique(as.character(country_city$country))[1]), )
+                 ),
+                 conditionalPanel(condition = "output.logged",
+                                  actionButton(
+                                    'modal_login',
+                                    'Autenticacion',
+                                    class = "btn btn-primary",
+                                    style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                                    
+                                  )),
+                 conditionalPanel(condition = "!output.logged",
+                                  actionButton(
+                                    'log_out',
+                                    'Cerrar sesion',
+                                    class = "btn btn-primary",
+                                    style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                                    
+                                  )),
+                 
+                 bs4TabItem(
+                   id = "sidebar",
+                   br(),
+                   #   #h6("Filtro"),
+                   radioButtons("shift_type", "",
+                                selected ="Todos",
+                                choices=c("Marketplace","Super","Todos"),
+                                inline=T
+                   ),
+                 ),
+                 br(),
+                 br(),
+                 tabsetPanel(id="MainTableCom", side="right",
+                             tabPanel(tabName = "En curso", 
+                                      active = TRUE,
+                                      h4(strong('')),
+                                      uiOutput("ui_external")
+                                      
+                             ),
+                             tabPanel(tabName = "Resumen General", 
+                                      active = FALSE,
+                                      h4(strong('')),
+                                      uiOutput("ui_overview"),
+                             ),            
+                             tabPanel(tabName = "Historico", 
+                                      active = FALSE,
+                                      h4(strong('')),
+                                      uiOutput("historical")
+                                      
+                                      
+                             )
+                             
+                 )
+      ),
+      bs4TabItem(
+        actionButton("id_productos_agregados", label = "Actualizar"),
+        br(),
+        br(),
+        tabName = "productos_agregados",
+        DT::dataTableOutput('dt_productos_agregados')
+      )
+    )
+  )
+)}
+
+
+server <- function(input, output,session) {
+ 
+  session$allowReconnect(TRUE)
+  port_val = reactiveVal(isolate(session$clientData$url_port))
+  
+  onStop(function(){
+    if(!interactive()){
+      base::message("Saliendo de la aplicacion...")
+      session_port = isolate(port_val())
+      base::message(session_port)
+      logsDir <- "/var/log/shiny-server"
+      appName <- "mc-operation-express" # Ultra super mega important to add the folder name (avoids uploading an erroneous log on S3)
+      df <- file.info(list.files(logsDir, pattern = ".log$", full.names = T))
+      df$filename <- rownames(df)
+      rownames(df) <- NULL
+      #df <- df %>% select(filename, mtime) %>% filter(grepl(appName, filename), mtime == max(mtime))
+      
+      df <- df %>% select(filename, mtime) %>% filter(grepl(appName, filename), grepl(session_port, filename), mtime == max(mtime)) %>% arrange(mtime)
+      filename <- df$filename[1]
+      filename <- gsub("/var/log/shiny-server/", "", filename)
+      setwd(logsDir)
+      file_to_save = paste0("mc-operation-express/", filename)  # Ultra super mega important to modify s3 (avoids uploading an erroneous log on S3)
+      base::message(df)
+      base::message(paste0("Guardando el archivo: ", filename, " en; ", file_to_save))
+      put_object(file = filename, object = file_to_save, bucket = "prod-mc-merqueo-logs")
+    }
+    
+  })
+  
+  
+   values <- reactiveValues(
+    upload_state = NULL
+  )
+  output$logged <- reactive({TRUE})
+  outputOptions(output,"logged",suspendWhenHidden=FALSE)
+  
+  
+  
+  f_location=reactiveVal()
+  df_routes=reactiveVal()
+  df_alistado=reactiveVal()
+  df_operation<-reactiveVal()
+  df_orders<-reactiveVal()
+  df_groups <- reactiveVal()
+  n_position=reactiveVal()
+  m_position=reactiveVal()
+  #Dataframe de la operación express
+  observe({
+    
+    invalidateLater(120*1000)
+  
+    df_express=get_query("shiny","select * from drivers.df_express")
+    
+    if(is.data.frame(df_express)==F){
+      print(paste0(Sys.time(),"-1"))
+      df_express=get_query("shiny","select * from drivers.df_express")
+      md=filter(df_express,shifts=='MD')
+      df_express=filter(df_express,shifts!='MD')
+      md<<-md
+    }else{
+      print(paste0(Sys.time(),"-2"))
+      md=filter(df_express,shifts=='MD')
+      df_express=filter(df_express,shifts!='MD')
+      md<<-md
+    }
+    
+    
+    df_express<<-df_express
+    mirror_ot<<-df_express
+    
+    
+  })
+  #Evento de actualización de tablas
+  observe({
+    
+    invalidateLater(120*1000)
+    warehouse_df=dplyr::filter(df_express,warehouse==input$w_report)
+    
+    time_zone={"select w.warehouse,c2.country,c2.id
+
+from merqueopro.warehouses w 
+inner join merqueopro.cities c on c.id=w.city_id 
+inner join merqueopro.countries c2 on c2.id=c.country_id 
+
+group by w.id"}
+    
+    
+    time_zone=get_query("prod",time_zone)
+    
+    
+    time_zone=vlookup(input$w_report,time_zone,"id","warehouse")
+
+    if(time_zone==1){
+      s_t=as.POSIXct(with_tz(Sys.time(),tzone = 'America/Bogota'))
+    }else if(time_zone==2){
+      s_t=as.POSIXct(with_tz(Sys.time(),tzone = 'America/Mexico_City'))
+    }else{
+      s_t=as.POSIXct(with_tz(Sys.time(),tzone = 'America/Sao_Paulo'))
+    }
+    s_t=as.POSIXct(as.character(s_t))
+    s_t<<-s_t
+    mirror=warehouse_df
+    
+    if(nrow(df_express)>0){
+      
+      { 
+        if(input$shift_type=="Todos"){
+          total_df=df_express
+          warehouse_df=warehouse_df
+          transport_df=df_express
+          dispatch_df=df_express
+        }
+        else if(input$shift_type=="EX"){
+          
+          total_df=filter(df_express,shifts=="EX")
+          total_df=filter(total_df,is_ultra_express!=1)
+          warehouse_df=filter(warehouse_df,shifts=="EX")
+          transport_df=filter(df_express,shifts=="EX")
+          dispatch_df=filter(df_express,shifts=="EX")
+          
+        }
+        else if(input$shift_type=="ER"){
+          
+          total_df=filter(df_express,shifts=="ER")
+          warehouse_df=filter(warehouse_df,shifts=="ER")
+          transport_df=filter(df_express,shifts=="EX")
+          dispatch_df=filter(df_express,shifts=="ER")
+          
+        }
+        else if(input$shift_type=="Ultra"){
+          
+          df_express=filter(df_express,is_ultra_express==1)
+          total_df=filter(df_express,shifts=="EX")
+          warehouse_df=filter(warehouse_df,shifts=="EX")
+          transport_df=filter(df_express,shifts=="EX")
+          dispatch_df=filter(df_express,shifts=="EX")
+          
+        }
+        
+        
+        parameter=which(mirror$missing>0 & mirror$status=="In Progress")
+        if(length(parameter)>0){
+          mirror[parameter,"status"]="V. Faltantes"
+        }
+        df=mirror %>% 
+          group_by(status,shifts) %>%
+          dplyr::summarise(orders=n(),.groups = 'drop')
+        
+        
+        df_ultra=mirror
+        df_ultra=filter(df_ultra,is_ultra_express==1)
+        
+        parameter=which(df_ultra$missing>0 & df_ultra$status=="In Progress")
+        if(length(parameter)>0){
+          df_ultra[parameter,"status"]="V. Faltantes"
+        }
+        
+        df_ultra=df_ultra %>% 
+          group_by(status,shifts) %>%
+          dplyr::summarise(orders=n(),.groups = 'drop')
+        
+        ex=dplyr::filter(df,shifts=="EX")
+        ultra=dplyr::filter(df_ultra,shifts=="EX")
+        er=dplyr::filter(df,shifts=="ER")
+        status_order$Ultra=vlookup(status_order$s_status,ultra,"orders","status")
+        status_order$EX=vlookup(status_order$s_status,ex,"orders","status")
+        status_order$ER=vlookup(status_order$s_status,er,"orders","status")
+        md_df=filter(md,warehouse==input$w_report)
+        parameter=which(md_df$missing>0 & md_df$status=="In Progress")
+        
+        if(length(parameter)>0){
+          md_df[parameter,"status"]="V. Faltantes"
+        }
+        
+        md_df=md_df %>% 
+          group_by(status,shifts) %>%
+          dplyr::summarise(orders=n(),.groups = 'drop')
+        status_order$MD=vlookup(status_order$s_status,md_df,"orders","status")
+        
+        status=status_order
+        status[is.na(status)]=0
+        status$'Ultra/EX/ER/MD'=paste0(status$Ultra," / ",status$EX-status$Ultra," / ",status$ER," / ",status$MD)
+        status$Total=status$Ultra+status$EX+status$ER+status$MD
+        status=status[which(status$Total>0),]
+        
+        
+        
+      }
+      #Barra lateral estado
+      output$status_df<- DT::renderDataTable(server=F,{
+        if(nrow(status)>0){
+          df=dplyr::select(status,status_names,'Ultra/EX/ER/MD')
+          colnames(df)=c("Estado","Ultra/EX/ER/MD")
+          DT::datatable(df,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)%>% formatStyle(
+                          'Estado',
+                          backgroundColor = styleEqual(status$status_names,status$colors)
+                        )%>%
+            formatStyle(columns = c(1:ncol(df)), fontSize = '110%')%>%
+            formatStyle(c("Ultra/EX/ER/MD"), fontWeight = 'bold')
+        }else{
+          df=data.frame("Estado"="Sin Pedidos")
+          DT::datatable(df,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)
+        }
+        
+      })
+      #Titulo
+      output$title=renderUI({
+        h2(paste0("Seguimiento ",input$w_report))
+      })
+      #Hora actualización 
+      output$hour_update=renderUI({
+        h5(paste0("Actualización: ",format(as.POSIXct(unique(df_express$systime)),"%k:%M:%S %p")))
+      })
+      
+      {
+        ontime_ex=dplyr::filter(mirror_ot,shifts=="EX")
+        ontime_ex=ontime_ex[which(is.na(ontime_ex$ontime)==F),]
+        ontime_ultra=ontime_ex[which(ontime_ex$is_ultra_express==1),]
+        ontime_ex=ontime_ex[which(ontime_ex$is_ultra_express!=1),]
+        ontime_er=dplyr::filter(mirror_ot,shifts=="ER" & status=="Delivered")
+        
+        parameter=which(ontime_er$shifts=="ER")
+        if(length(parameter)>0){
+          ontime_er=ontime_er[parameter,]
+          ontime_er$parameter=vlookup(ontime_er$delivery_time,dw_aux,"end",1)
+          temp=ontime_er[is.na(ontime_er$parameter)==F,]
+          if(nrow(temp)>0){
+            temp$delivery_date=paste0(substr(temp$delivery_date,1,10)," ",temp$parameter,":00:00")
+            parameter=which(ontime_er$order_id %in% temp$order_id)
+            ontime_er[parameter,"delivery_date"]=vlookup(ontime_er$order_id[parameter],temp,"delivery_date","order_id")
+            ontime_er[parameter,"ontime"]="On Time"
+            parameter=which(ontime_er$management_date[parameter]>ontime_er$delivery_date[parameter])
+            if(length(parameter)>0){
+              ontime_er[parameter,"ontime"]="Late"
+            }
+            output$ot_er=renderUI({
+              h5(paste0("E. Rapida: ",vlookup(input$w_report,ontime_ex,"Entrega Rapida","Bodega")))
+            })
+            
+          }
+        }
+        
+        
+        ontime_m=mirror_ot
+        {
+          ontime_m=dplyr::filter(ontime_m,shifts=="EX")
+          ultra_status=ontime_m[which(ontime_m$is_ultra_express==1),]
+          ontime_status=ontime_m[which(ontime_m$is_ultra_express!=1),]
+          ultra_status=ultra_status[which(ultra_status$status %in% c("Alistado")),]
+          ontime_status=ontime_status[which(ontime_status$status %in% c("Alistado")),]
+          er_status=mirror_ot[which(mirror_ot$status %in% c("Alistado") & mirror_ot$shifts=="ER"),]
+          
+          if(nrow(ontime_ultra)>0){
+            ontime_ultra=maditr::dcast(ontime_ultra,warehouse~ontime,length)
+            ontime_ultra$percentage=ontime_ultra$`On Time`/ rowSums(ontime_ultra[,2:ncol(ontime_ultra)])
+            ontime_ultra=ontime_ultra[,c("warehouse","percentage")]
+          }
+          if(nrow(ontime_er)>0){
+            ontime_er=maditr::dcast(ontime_er,warehouse~ontime,length)
+            ontime_er$percentage=paste(round(100*(ontime_er$`On Time`/ rowSums(ontime_er[,2:ncol(ontime_er)])),2),"%")
+            ontime_er=ontime_er[,c("warehouse","percentage")]
+            colnames(ontime_er)=c("Bodega","Entrega Rapida")
+          }
+          
+          if(nrow(ontime_ex)>0){
+            ontime_ex=maditr::dcast(ontime_ex,warehouse~ontime,length)
+            ontime_ex$percentage=ontime_ex$`On Time`/ rowSums(ontime_ex[,2:ncol(ontime_ex)])
+            ontime_ex=ontime_ex[,c("warehouse","percentage")]
+            if(ncol(ontime_ultra)==2){
+              ontime_ex=left_join(ontime_ex,ontime_ultra,"warehouse")
+              colnames(ontime_ex)=c("Bodega","Express","Ultra")
+              ontime_ex=ontime_ex[order(ontime_ex$Express*ontime_ex$Ultra),]
+              ontime_ex$Express=paste0(round(100*ontime_ex$Express,2),"%")
+              ontime_ex$Ultra=paste0(round(100*ontime_ex$Ultra,2),"%")
+              ontime_ex$Ultra=gsub("NA%","",ontime_ex$Ultra)
+              ontime_ex$Express=gsub("NA%","",ontime_ex$Express)
+              
+              
+              
+            }else{
+              colnames(ontime_ex)=c("Bodega","Express")
+              ontime_ex$Express=paste0(round(100*ontime_ex$Express,2),"%")
+              ontime_ex$Express=gsub("NA%","",ontime_ex$Express)
+            }
+            
+            if(ncol(ontime_er)==2){
+              ontime_ex=left_join(ontime_ex,ontime_er,"Bodega")
+              #ontime_ex$`Entrega Rapida`=paste0(round(100*ontime_ex$`Entrega Rapida`,2),"%")
+              ontime_ex$`Entrega Rapida`=gsub("NA%","",ontime_ex$`Entrega Rapida`)
+              
+            }
+            
+          }
+          
+          ontime_md=filter(md,status=="Delivered")
+          if(nrow(ontime_md)>0){
+            ontime_md$ontime="On Time"
+            parameter=which(ontime_md$arrived_date>=ontime_md$delivery_date)
+            if(length(parameter)>0){
+              ontime_md[parameter,"ontime"]="Late"
+            }
+            ontime_md=maditr::dcast(ontime_md,warehouse~ontime,length)
+            ontime_md$percentage=ontime_md$`On Time`/ rowSums(ontime_md[,2:ncol(ontime_md)])
+            ontime_md=ontime_md[,c("warehouse","percentage")]
+            colnames(ontime_md)=c("Bodega","MD")
+            output$ot_md=renderUI({
+              h5(paste0("MD: ",paste0(round(100*vlookup(input$w_report,ontime_md,"MD","Bodega"),2),"%")))
+            })
+          }
+          
+          NOrdenes <- filter(mirror_ot, status == "Delivered")
+          NOrdenes=NOrdenes %>% group_by(warehouse, shifts, is_ultra_express ) %>% dplyr::summarise(orders=n())
+          NOrdenes$shifts<-ifelse(NOrdenes$is_ultra_express==1,"ULTRA",NOrdenes$shifts)
+          
+          din1 <- as.data.frame(filter(NOrdenes, shifts == "EX"))
+          din1 <- select(din1, "warehouse", "orders")
+          colnames(din1) <- c("Bodega", "EX" )
+          din2 <- as.data.frame(filter(NOrdenes, shifts == "ULTRA"))
+          din2 <- select(din2, "warehouse", "orders")
+          colnames(din2) <- c("Bodega", "ULTRA" )
+          din3 <- as.data.frame(filter(NOrdenes, shifts == "ER"))
+          din3 <- select(din3, "warehouse", "orders")
+          colnames(din3) <- c("Bodega", "ER" )
+          NOrdenes <- merge(din1, din2, "Bodega", all=T)
+          NOrdenes <- merge(NOrdenes, din3, "Bodega", all=T)
+          #NOrdenes[is.na(NOrdenes)]=""
+          if(nrow(ontime_ex)>0){
+          ontime_ex=merge(ontime_ex,NOrdenes,"Bodega", all=T)
+          
+          output$render_ontime <- renderHtmlTableWidget({ 
+            htmlTableWidget(ontime_ex[1:nrow(ontime_ex),],options = list(
+              dom = 'Bfrtip',
+              lengthMenu = list(c(5, 15, -1), c('5', '15', 'All')),
+              pageLength = 15)) 
+          })
+          }
+        }
+        
+      }
+      
+      
+      {
+        
+        output$ot_ul=renderUI({
+          h5(paste0("Ultra: ",vlookup(input$w_report,ontime_ex,"Ultra","Bodega")))
+        })
+        
+        output$ot_ex=renderUI({
+          h5(paste0("Express: ",vlookup(input$w_report,ontime_ex,"Express","Bodega")))
+        })
+        
+        
+        
+      }
+      
+      total_df=dplyr::filter(total_df,warehouse==input$w_report)
+      stages=time_stages(total_df,df_express,s_t,status_order,dw_aux)
+      coord=stages
+      
+      stages$created_at=vlookup(stages$order_id,warehouse_df,"user_address","order_id")
+      addr=c(paste0(round(-23.548219217215756,2),"*",round(-46.636711663560014,2)),
+             paste0(round(19.39280181563818,2),"*",round(-99.1489627009619,2)),
+             paste0(round(4.688978884099032,2),"*",round(-74.06499977682778,2)))
+      if(nrow(stages)>0){
+        coord$key=paste0(round(vlookup(coord$order_id,mirror,"user_address_latitude","order_id"),2),"*",
+                         round(vlookup(coord$order_id,mirror,"user_address_longitude","order_id"),2))
+        parameter=which(coord$key %in% addr)
+        stages$location="OK"
+        if(length(parameter)>0){
+          stages[parameter,"location"]="Error"
+        }
+      }
+      output$timereport<- DT::renderDataTable(server=F,{
+        if(nrow(stages)>0){
+          
+          stages$minutes=as.numeric(stages$minutes)
+          colors_df=data.frame("levels"=c("Error","OK"),"colors"=c("#E08888","#A1DAFF"))
+          parameter=vlookup(stages$order_id,warehouse_df,"payment_method","order_id")
+          parameter=which(parameter%in%c("Debito - PSE") & stages$status%in%c("Validación"))
+          stages[parameter,"status"]="Validación PSE"
+          stages$order_id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',stages$order_id,'/details" target="_blank">',stages$order_id,'</a>')
+          stages[,c(8,9,10,11,12)]=sapply(stages[,c(8,9,10,11,12)],hour_fix)
+          stages$minutes=hour_fix(stages$minutes)
+          stages[,c(8,9,10,11,12)]=space_fix(stages[,c(8,9,10,11,12)])
+          colnames(stages)=c("Id. Pedido","Estado","Dirección","Tiempo para Entrega","Franja","Progreso","Avance",
+                             "Validación","Iniciado","Enrutado","In Progress","Alistado","Dirección")
+          parameter=which(grepl("Falta",stages$Avance))
+          stages[parameter,"Estado"]="V. Faltantes"
+          stages=stages[,-ncol(stages)]
+          DT::datatable(stages,
+                        class = 'cell-border stripe',
+                        rownames=FALSE,
+                        colnames=paste0('<b>',colnames(stages),'</b>'),
+                        extensions = list("Scroller"),
+                        options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                     lengthChange = FALSE,paging = FALSE),
+                        selection=list(mode="single", target="row"),
+                        filter = 'top',escape = FALSE)%>%
+            formatStyle(
+              'Progreso',
+              background = styleColorBar(stages$Progreso,"#B1F5FA")
+            ) %>% formatPercentage('Progreso',0)%>% formatStyle(
+              5,
+              backgroundColor = styleEqual(c('EX-30 minutos o gratis','EX-10 minutos o antes','EX-10 minutos o menos','EX-10 minutos o menos','EX-15 minutos o antes','EX-15 minutos o menos','EX-20 minutos o antes','EX-20 minutos o menos','EX-30 minutos o antes','EX-30 minutos o menos','EX-45 minutos o antes','EX-45 minutos o menos','EX-60 minutos o antes','EX-60 minutos o menos'),c("#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B")),
+              target = c("cell")
+            )%>%formatStyle(columns = c(1:ncol(stages)), fontSize = '120%')%>%
+            formatStyle(columns ="Franja", fontSize = '100%')%>% formatStyle(
+              c(8,9,10,11,12),
+              backgroundColor ="#B1FABA"
+            )%>% formatStyle(
+              c(8,9,10,11,12),
+              backgroundColor = styleEqual("","white")
+            )%>%formatStyle(
+              'Estado',
+              backgroundColor = styleEqual(status_order$status_names,status_order$colors)
+            )%>%formatStyle(
+              columns ="Dirección", fontSize = '90%',fontWeight = 'bold')%>%
+            formatStyle(c("Avance","Tiempo para Entrega","Progreso"), fontWeight = 'bold')
+        }else{
+          df=data.frame("Estado"="Sin Pedidos")
+          DT::datatable(df,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)
+        }
+        
+      })
+      
+      dispatch_df=dplyr::filter(dispatch_df,warehouse==input$w_report)
+      dispatch_df=filter(dispatch_df,status=="Alistado")
+
+      
+      if(nrow(stages)>0){
+        output$mymap_alistado <- renderLeaflet({
+          dispatch_df=stages
+          dispatch_df=filter(dispatch_df,status %in% c("Alistado","En Progreso"))
+          dispatch_df$latitude=vlookup(dispatch_df$order_id,total_df,"user_address_latitude","order_id")
+          dispatch_df$longitude=vlookup(dispatch_df$order_id,total_df,"user_address_longitude","order_id")
+          dispatch_df$minutes=hour_fix(dispatch_df$minutes)
+          if(nrow(dispatch_df)>0){
+            dispatch_df$seq=1:nrow(dispatch_df)
+            icon_w <- awesomeIcons(
+              icon = 'store',
+              iconColor = 'black',
+              library = 'fa',
+              markerColor ="purple"
+            )
+            
+            
+            
+            map=leaflet() %>% 
+              addProviderTiles(providers$CartoDB)
+            w_m=filter(warehouses,warehouse==input$w_report)
+            dispatch_df$sequence=vlookup(dispatch_df$order_id,mirror,"planning_sequence","order_id")
+            dispatch_df$sequence=paste0(vlookup(dispatch_df$order_id,mirror,"shifts","order_id"),"- Seq.",dispatch_df$sequence)
+            dispatch_df$sequence=paste0(vlookup(dispatch_df$order_id,mirror,"delivery_time","order_id")," -",dispatch_df$sequence)
+            alistado=filter(dispatch_df,status=="Alistado")
+            en_progreso=filter(dispatch_df,status!="Alistado")
+            icon_o <- awesomeIcons(
+              icon = 'laugh',
+              iconColor ='black',
+              library = 'fa',
+              markerColor = "blue",
+              text=alistado$seq
+            )
+            icon_ep <- awesomeIcons(
+              icon = 'laugh',
+              iconColor ='black',
+              library = 'fa',
+              markerColor = "red",
+              text=en_progreso$seq
+            )
+            
+            
+            map=addAwesomeMarkers(map,lng=w_m$longitude,lat=w_m$latitude,icon = icon_w, label=w_m$warehouse,
+                                  labelOptions = labelOptions(textsize = "15px",noHide = T,textOnly = T))
+            if(nrow(alistado)>0){
+              map=addAwesomeMarkers(map,lat =alistado$latitude,
+                                    lng = alistado$longitude,icon = icon_o,
+                                    popupOptions(closeButton = F,keepInView=T),
+                                    popup =paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',alistado$order_id,'/details" target="_blank">',alistado$order_id,'</a>'),  
+                                    label =alistado$sequence,labelOptions(textsize = "18px",noHide = T,textOnly = F))
+            }
+            if(nrow(en_progreso)>0){
+              map=addAwesomeMarkers(map,lat =en_progreso$latitude,
+                                    lng = en_progreso$longitude,icon = icon_ep,
+                                    popupOptions(closeButton = F,keepInView=T),
+                                    popup =paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',en_progreso$order_id,'/details" target="_blank">',en_progreso$order_id,'</a>'),  
+                                    label =en_progreso$sequence,labelOptions(textsize = "18px",noHide = T,textOnly = F))
+            }
+            map=setView(map,median(w_m$longitude),median(w_m$latitude), zoom = 13)
+            map
+          }
+        })
+      }
+      
+      
+    }
+    
+    
+    print(Sys.time())
+    
+    
+    
+    md_filter=filter(md,warehouse==input$w_report)
+    if(nrow(md_filter)>0){
+      
+      a1=hour(hms(format(md_filter$hour_start_window,format = "%Y-%m-%d")))
+      a2=hour(hms(format(md_filter$hour_end_window,format = "%Y-%m-%d")))
+      md_filter$stripe=paste(a1,a2,
+                             sep=' a ')
+      parameter_md=unique(md_filter$stripe)
+      
+      stripe_order=c("7 a 9","8 a 10","9 a 11","10 a 12","11 a 13","12 a 14","13 a 15","14 a 16","15 a 17","16 a 18","17 a 19","18 a 20","19 a 21","20 a 22")
+      stripe_order=stripe_order[which(stripe_order %in% parameter_md)]
+      
+      if(nrow(md_filter)>0){
+        md_resume=inner_join(md_filter %>% count(stripe),md_filter %>% 
+                               group_by(stripe) %>% 
+                               summarise(Items = sum(Items)),"stripe")
+        colnames(md_resume)=c("Franja","Pedidos","Items")
+        md_resume=cbind("code"=0,md_resume)
+        md_resume=md_resume[1,]
+        md_resume_r=md_resume[1,]
+        md_resume=md_resume[-1,]
+        colnames(md_resume_r)=c("code","Ruta","Pedidos","Items")
+        md_resume_r=md_resume_r[-1,]
+      }
+      to_deliver=filter(md_filter,status%in%c("Initiated","Validation"))
+      
+      if(nrow(to_deliver)>0){
+        to_deliver=inner_join(to_deliver %>% count(stripe),to_deliver %>% 
+                                group_by(stripe) %>% 
+                                summarise(Items = sum(Items)),"stripe")
+        colnames(to_deliver)=c("Franja","Pedidos","Items")
+        to_deliver=cbind("code"="Iniciado",to_deliver)
+        md_resume=rbind(md_resume,to_deliver)
+        
+      }
+      
+      
+      enrutado=filter(md_filter,status%in%c("Enrutado"))
+      if(nrow(enrutado)>0){
+        enrutado_r=inner_join(enrutado %>% count(route),enrutado %>% 
+                                group_by(route) %>% 
+                                summarise(Items = sum(Items)),"route")
+        colnames(enrutado_r)=c("Ruta","Pedidos","Items")
+        
+        enrutado_r=cbind("code"="Enrutado",enrutado_r)
+        
+        
+        output$enrutado1<- DT::renderDataTable(server=F,{
+          tbl=enrutado_r[,-1]
+          DT::datatable(tbl,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)
+        })
+        
+        
+        md_resume_r=rbind(md_resume_r,enrutado_r)
+        
+        enrutado=inner_join(enrutado %>% count(stripe),enrutado %>% 
+                              group_by(stripe) %>% 
+                              summarise(Items = sum(Items)),"stripe")
+        colnames(enrutado)=c("Franja","Pedidos","Items")
+        
+        enrutado=cbind("code"="Enrutado",enrutado)
+        md_resume=rbind(md_resume,enrutado)
+        
+      }
+      
+      in_progress=filter(md_filter,status%in%c("In Progress"))
+      if(nrow(in_progress)>0){
+        in_progress_r=inner_join(in_progress %>% count(route),in_progress %>% 
+                                   group_by(route) %>% 
+                                   summarise(Items = sum(Items)),"route")
+        colnames(in_progress_r)=c("Ruta","Pedidos","Items")
+        
+        in_progress_r=cbind("code"="En Progreso",in_progress_r)
+        md_resume_r=rbind(md_resume_r,in_progress_r)
+        output$progreso1<- DT::renderDataTable(server=F,{
+          tbl=in_progress_r[,-1]
+          DT::datatable(tbl,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)
+        })
+        
+        in_progress=inner_join(in_progress %>% count(stripe),in_progress %>% 
+                                 group_by(stripe) %>% 
+                                 summarise(Items = sum(Items)),"stripe")
+        colnames(in_progress)=c("Franja","Pedidos","Items")
+        
+        in_progress=cbind("code"="En Progreso",in_progress)
+        md_resume=rbind(md_resume,in_progress)
+        
+      }
+      
+      alistado=filter(md_filter,status%in%c("Alistado"))
+      if(nrow(alistado)>0){
+        alistado_r=inner_join(alistado %>% count(route),alistado %>% 
+                                group_by(route) %>% 
+                                summarise(Items = sum(Items)),"route")
+        colnames(alistado_r)=c("Ruta","Pedidos","Items")
+        alistado_r=cbind("code"="Alistado",alistado_r)
+        md_resume_r=rbind(md_resume_r,alistado_r)
+        alistado=inner_join(alistado %>% count(stripe),alistado %>% 
+                              group_by(stripe) %>% 
+                              summarise(Items = sum(Items)),"stripe")
+        colnames(alistado)=c("Franja","Pedidos","Items")
+        alistado=cbind("code"="Alistado",alistado)
+        md_resume=rbind(md_resume,alistado)
+        
+      }
+      
+      
+      vector_status=c("Iniciado","Enrutado","En Progreso","Alistado")
+      colors=c("primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark")
+      output$render_ui_md=renderUI({
+        fluidRow(
+          lapply(1:length(unique(md_resume$code)), function(i) {
+            filter_c=md_resume[which(md_resume$code==unique(md_resume$code)[i]),]
+            c_parameter=as.character(unique(md_resume$code)[i])
+            filter_d=md_resume_r[which(md_resume_r$code==c_parameter),]
+            
+            if(nrow(filter_c)>0){
+              {bs4Card(
+                solidHeader = "FALSE",
+                title = unique(md_resume$code)[i],
+                width = 4,
+                #status =colors[i],
+                fluidRow(
+                  column(
+                    width = 4,
+                    tags$h2(paste0("Franja"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    if(nrow(filter_c)>0){
+                      filter_c=filter_c[match(stripe_order,filter_c$Franja),]
+                      filter_c=filter_c[is.na(filter_c$Franja)==F,]
+                      lapply(1:nrow(filter_c), function(j) {
+                        if(nrow(filter_c)>0){
+                          descriptionBlock(
+                            tags$h2(filter_c$Franja[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                          )
+                        }
+                      })
+                      },
+                    br(),
+                    tags$h2(if_else(nrow(filter_d)>0,paste0("Ruta"),""), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    if(nrow(filter_d)>0){
+                      lapply(1:nrow(filter_d), function(j) {
+                        if(nrow(filter_d)>0){
+                          descriptionBlock(
+                            tags$h2(filter_d$Ruta[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                          )
+                        }
+                      })
+                    }
+                  ),
+                  column(
+                    width = 4,
+                    tags$h2(paste0("Pedidos"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    if(nrow(filter_c)>0){
+                      lapply(1:nrow(filter_c), function(j) {
+                        descriptionBlock(
+                          tags$h2(filter_c$Pedidos[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                        )
+                      })
+                    },
+                    br(),
+                    tags$h2(if_else(nrow(filter_d)>0,paste0("Pedidos"),""), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    if(nrow(filter_d)>0){
+                      lapply(1:nrow(filter_d), function(j) {
+                        if(nrow(filter_d)>0){
+                          descriptionBlock(
+                            tags$h2(filter_d$Pedidos[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                          )
+                        }
+                      })
+                    }
+                  ),
+                  column(
+                    width = 4,
+                    tags$h2(paste0("Ítems"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    if(nrow(filter_c)>0){
+                      lapply(1:nrow(filter_c), function(j) {
+                        descriptionBlock(
+                          tags$h2(filter_c$Items[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                        )
+                      })
+                    },
+                    br(),
+                    tags$h2(if_else(nrow(filter_d)>0,paste0("Ítems"),""), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                    
+                    if(nrow(filter_d)>0){
+                  
+                      lapply(1:nrow(filter_d), function(j) {
+                        if(nrow(filter_d)>0){
+                          descriptionBlock(
+                            tags$h2(filter_d$Items[j], class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                          )
+                        }
+                      })
+                    }
+                    
+                  )
+                )
+              )
+              }
+              }
+            
+          })
+        )
+      })
+      m_stages=time_stages(total_df,df_express,s_t,status_order,dw_aux)
+      md_stages=time_stages(md_filter,md_filter,s_t,status_order,dw_aux)
+      md_stages=rbind(m_stages,md_stages)
+      coord=md_stages
+      
+      
+      md_stages$created_at=vlookup(md_stages$order_id,rbind(df_express,md),"user_address","order_id")
+      
+      
+      
+      output$timereport_md<- DT::renderDataTable(server=F,{
+        if(nrow(md_stages)>0){
+          md_stages$minutes=as.numeric(md_stages$minutes)
+          md_stages=md_stages[order(md_stages$minutes),]
+          colors_df=data.frame("levels"=c("Error","OK"),"colors"=c("#E08888","#A1DAFF"))
+          parameter=vlookup(md_stages$order_id,rbind(df_express,md),"payment_method","order_id")
+          parameter=which(parameter%in%c("Debito - PSE") & md_stages$status%in%c("Validación"))
+          md_stages[parameter,"status"]="Validación PSE"
+          md_stages$order_id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',md_stages$order_id,'/details" target="_blank">',md_stages$order_id,'</a>')
+          md_stages[,c(8,9,10,11,12)]=sapply(md_stages[,c(8,9,10,11,12)],hour_fix)
+          md_stages$minutes=hour_fix(md_stages$minutes)
+          md_stages[,c(8,9,10,11,12)]=space_fix(md_stages[,c(8,9,10,11,12)])
+          colnames(md_stages)=c("Id. Pedido","Estado","Dirección","Tiempo para Entrega","Franja","Progreso","Avance",
+                                "Validación","Iniciado","Enrutado","In Progress","Alistado")
+          parameter=which(grepl("Falta",md_stages$Avance))
+          md_stages[parameter,"Estado"]="V. Faltantes"
+          
+          DT::datatable(md_stages,
+                        class = 'cell-border stripe',
+                        rownames=FALSE,
+                        colnames=paste0('<b>',colnames(md_stages),'</b>'),
+                        extensions = list("Scroller"),
+                        options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                     lengthChange = FALSE,paging = FALSE),
+                        selection=list(mode="single", target="row"),
+                        filter = 'top',escape = FALSE)%>%
+            formatStyle(
+              'Progreso',
+              background = styleColorBar(md_stages$Progreso,"#B1F5FA")
+            ) %>% formatPercentage('Progreso',0)%>% formatStyle(
+              5,
+              backgroundColor = styleEqual(c('EX-30 minutos o gratis','EX-10 minutos o antes','EX-10 minutos o menos','EX-10 minutos o menos','EX-15 minutos o antes','EX-15 minutos o menos','EX-20 minutos o antes','EX-20 minutos o menos','EX-30 minutos o antes','EX-30 minutos o menos','EX-45 minutos o antes','EX-45 minutos o menos','EX-60 minutos o antes','EX-60 minutos o menos'),c("#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B","#EE644B")),
+              target = c("cell")
+            )%>%formatStyle(columns = c(1:ncol(md_stages)), fontSize = '120%')%>%
+            formatStyle(columns ="Franja", fontSize = '100%')%>% formatStyle(
+              c(8,9,10,11,12),
+              backgroundColor ="#B1FABA"
+            )%>% formatStyle(
+              c(8,9,10,11,12),
+              backgroundColor = styleEqual("","white")
+            )%>%formatStyle(
+              'Estado',
+              backgroundColor = styleEqual(status_order$status_names,status_order$colors)
+            )%>%formatStyle(
+              columns ="Dirección", fontSize = '90%',fontWeight = 'bold')%>%
+            formatStyle(c("Avance","Tiempo para Entrega","Progreso"), fontWeight = 'bold')
+        }else{
+          df=data.frame("Estado"="Sin Pedidos")
+          DT::datatable(df,class = 'cell-border stripe',
+                        options = list(dom='t',info=FALSE,autoWidth = F,
+                                       lengthChange = T,paging = FALSE,
+                                       pageLength = nrow(df),scrollX = F),
+                        selection=list(mode="single", target="row"),
+                        rownames =FALSE,
+                        filter = 'none',escape = FALSE,editable = FALSE)
+        }
+        
+      })
+
+      if(nrow(md_stages)>0){
+        output$mymap_alistado_md <- renderLeaflet({
+          dispatch_df=md_stages
+          cbind=rbind(mirror_ot,md)
+          dispatch_df=dispatch_df[order(as.numeric(dispatch_df$minutes)),]
+          dispatch_df$latitude=vlookup(dispatch_df$order_id,cbind,"user_address_latitude","order_id")
+          dispatch_df$longitude=vlookup(dispatch_df$order_id,cbind,"user_address_longitude","order_id")
+          dispatch_df$minutes=hour_fix(dispatch_df$minutes)
+          if(nrow(dispatch_df)>0){
+            icon_w <- awesomeIcons(
+              icon = 'store',
+              iconColor = 'black',
+              library = 'fa',
+              markerColor ="purple"
+            )
+            
+            
+            
+            map=leaflet() %>% 
+              addProviderTiles(providers$CartoDB)
+            w_m=filter(warehouses,warehouse==input$w_report)
+            dispatch_df$sequence=vlookup(dispatch_df$order_id,cbind,"planning_sequence","order_id")
+            dispatch_df$sequence=paste0(vlookup(dispatch_df$order_id,cbind,"shifts","order_id"),"- Seq.",dispatch_df$sequence)
+            dispatch_df$sequence=paste0(vlookup(dispatch_df$order_id,cbind,"delivery_time","order_id")," -",dispatch_df$sequence)
+            dispatch_df=filter(dispatch_df,status%in%c("Alistado","En Progreso"))
+            dispatch_df$seq=1:nrow(dispatch_df)
+            alistado=filter(dispatch_df,status=="Alistado")
+            en_progreso=filter(dispatch_df,status=="En Progreso")
+            
+            icon_o <- awesomeIcons(
+              icon = 'laugh',
+              iconColor ='black',
+              library = 'fa',
+              markerColor = "blue",
+              text=alistado$seq
+            )
+            icon_ep <- awesomeIcons(
+              icon = 'laugh',
+              iconColor ='black',
+              library = 'fa',
+              markerColor = "red",
+              text=en_progreso$seq
+            )
+            
+            
+            map=addAwesomeMarkers(map,lng=w_m$longitude,lat=w_m$latitude,icon = icon_w, label=w_m$warehouse,
+                                  labelOptions = labelOptions(textsize = "15px",noHide = T,textOnly = T))
+            if(nrow(alistado)>0){
+              map=addAwesomeMarkers(map,lat =alistado$latitude,
+                                    lng = alistado$longitude,icon = icon_o,
+                                    popupOptions(closeButton = F,keepInView=T),
+                                    popup =paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',alistado$order_id,'/details" target="_blank">',alistado$order_id,'</a>'),  
+                                    label =alistado$sequence,labelOptions(textsize = "18px",noHide = T,textOnly = F))
+            }
+            if(nrow(en_progreso)>0){
+              map=addAwesomeMarkers(map,lat =en_progreso$latitude,
+                                    lng = en_progreso$longitude,icon = icon_ep,
+                                    popupOptions(closeButton = F,keepInView=T),
+                                    popup =paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',en_progreso$order_id,'/details" target="_blank">',en_progreso$order_id,'</a>'),  
+                                    label =en_progreso$sequence,labelOptions(textsize = "18px",noHide = T,textOnly = F))
+            }
+            map=setView(map,median(w_m$longitude),median(w_m$latitude), zoom = 13)
+            
+            map
+          }
+        })
+      }
+      
+    }
+    
+    
+  })
+  #Consulta ubicación flota
+  observe({
+    invalidateLater(120*1000)
+
+
+    
+    if(cron_parameter==0){
+      fleet_location=getVehicles()
+    }else{
+      fleet_location=get_query("shiny","SELECT * from drivers.current_location")
+    }
+    fleet_location<<-fleet_location
+    f_location(fleet_location)
+    
+    shopper_availability=shopper_plates(shopper_qry)
+    shopper_availability$start=do.call(rbind,str_split(shopper_availability$stripe,"-"))[,1]
+    shopper_availability$end=do.call(rbind,str_split(shopper_availability$stripe,"-"))[,2]
+    if(nrow(shopper_availability)>0){
+      shopper_availability$start=as.POSIXct(paste0(substr(Sys.time(),1,10)," ",shopper_availability$start,":00"))
+      shopper_availability$end=as.POSIXct(paste0(substr(Sys.time(),1,10)," ",shopper_availability$end,":00"))
+      m_position(shopper_availability)
+      s_t=with_tz(Sys.time(),tzone = 'America/Bogota')
+      s_t=as.POSIXct(as.character(s_t))
+      parameter=which(s_t>=shopper_availability$start & s_t<=shopper_availability$end)
+      shopper_availability$status=F
+      if(length(parameter)>0){
+        shopper_availability[parameter,"status"]=T
+      }
+      shopper_availability=filter(shopper_availability,status==T)
+      shopper_availability[which(shopper_availability$end<=Sys.time() & shopper_availability$extra_attention==1),"status"]=TRUE
+      available_shoppers=shopper_availability
+      n_position(available_shoppers)
+    }
+    dispatched_plates=df_express[which(df_express$status=="Dispatched"),]
+    md_plates=md[which(md$status=="Dispatched"),]
+    dispatched_plates=rbind(dispatched_plates,md_plates)
+    parameter=which(duplicated(dispatched_plates$order_id)==T)
+    if(length(parameter)>0){
+      dispatched_plates=dispatched_plates[-parameter,]
+    }
+    
+    
+    if(nrow(dispatched_plates)>0){
+      dispatched_plates=unique(dispatched_plates$plate)
+      dispatched_plates<-dispatched_plates[which(is.na(dispatched_plates)==F)]
+      dispatched_plates<<-dispatched_plates
+      output$render_cost2=renderUI({
+        selectInput("plate_cost", label = "Seleccione la placa:",choices =dispatched_plates)
+        
+      })
+      output$render_cost3=renderUI({
+        actionButton(
+          'save_er',
+          'Generar',
+          class = "btn btn-primary",
+          style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+        )
+        
+      })
+    }
+    
+    
+  })
+  #Consulta botón reactivo por pedidos en cedis
+  observe({
+    invalidateLater(120*1000)
+    # Evaluacion del boton
+    
+    
+    if(input$alert_toggle==T){
+      
+      {
+        orders_to_process <- df_express[which(df_express$status %in% c("Enrutado") & df_express$warehouse == input$w_report),]
+        ultra=dplyr::filter(orders_to_process,orders_to_process$is_ultra_express==1)
+        ultra=nrow(ultra)
+        
+        
+        
+        string=glue("Hay {ultra} pedidos Ultra, pendientes por iniciar")
+        
+      }
+      
+      
+      sound<<-0
+      
+      
+      if(ultra>0){
+        {
+          sound<<-1
+          
+          
+          observe({
+            if(input$alert_toggle==T & sound==1){
+              js$beepa_oink()
+            }
+          })
+          
+          
+          showModal(modalDialog(tags$h3("ATENCIÓN !!", class = "text-center", style = "padding-top: 0;color:#D84949;font-size: 36px; font-weight:600; font-weight:bold;"),
+                                br(),
+                                HTML(paste0("<center><img src = ","https://i.ibb.co/rGRMPjn/marranito-insatisfecho.jpg"," witdh = '500' height = '500'>")),
+                                tags$h3(string, class = "text-center", style = "padding-top: 0;color: black;font-size: 34px; font-weight:500; font-weight:bold;"),
+                                size = 'l',
+                                easyClose = FALSE,
+                                footer =list(
+                                  actionButton(
+                                    'ultra',
+                                    'Entendido',
+                                    class = "btn btn-primary",
+                                    style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                                  )
+                                ) ))
+          Sys.sleep(2)
+          removeModal()
+          
+        }
+        
+      }
+      
+      
+    }
+    
+  })
+  
+  
+  
+  # Insertar la barra de seleccion del picker y el boton para generar informe en la pestanna.
+  observeEvent(input$free_shoppers,{
+
+    
+    shoppers_availiability=n_position()
+    vehicles=f_location()
+    
+    shoppers_availiability=filter(shoppers_availiability,warehouse_id==vlookup(input$w_report,warehouses,"id","warehouse"))
+    if(nrow(shoppers_availiability)>0){
+      shoppers_availiability=shoppers_availiability[which(shoppers_availiability$plate %in% vehicles$plate),]
+      vehicles=vehicles[which(vehicles$plate%in% shoppers_availiability$plate),]
+      if(nrow(vehicles)>0 & nrow(shoppers_availiability)>0){
+        result=map_parameters(vehicles,shoppers_availiability)
+        
+        vehicles=result[[3]]
+        w_origin=dplyr::filter(warehouses,warehouse==input$w_report)
+        vehicles$dist=sqrt((w_origin$latitude-vehicles$lat)^2+(w_origin$longitude-vehicles$lng)^2)*110
+        vehicles=vehicles[order(vehicles$dist),]
+        
+        vehicles$stripe=vlookup(vehicles$plate,shoppers_availiability,"stripe","plate")
+        free_shoopers_df=dplyr::select(vehicles,transporter,plate,stripe,driver,phone)
+        free_shoopers_df$plate=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',free_shoopers_df$phone,'&amp;text=Logística Merqueo" target="_blank">',free_shoopers_df$plate,'</a>')
+        
+        output$free_shoopers_df<- DT::renderDataTable(server=F,{
+          colnames(free_shoopers_df)=c("3ro","Placa","Franja","Shopper","Teléfono")
+          DT::datatable(free_shoopers_df,
+                        class = 'cell-border stripe',
+                        rownames=FALSE,
+                        colnames=paste0('<b>',colnames(free_shoopers_df),'</b>'),
+                        extensions = list("Scroller"),
+                        options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,columnDefs = list(list(className = 'dt-center', targets = 0:4)),scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                     lengthChange = FALSE,paging = FALSE),
+                        selection=list(mode="single", target="row"),
+                        filter = 'top',escape = FALSE)%>%
+            formatStyle(columns = c(1:ncol(free_shoopers_df)), fontSize = '110%')
+        })
+        output$free_shoopers_map <- renderLeaflet({
+          icons <- awesomeIcons(
+            icon =vehicles$icon,
+            iconColor = 'black',
+            library = 'fa',
+            markerColor = if_else(vehicles$status=="free","green","orange")
+          )
+          
+          icon_w <- awesomeIcons(
+            icon = 'store',
+            iconColor = 'black',
+            library = 'fa',
+            markerColor ="purple"
+          )
+          
+          map=leaflet() %>% 
+            addProviderTiles(providers$CartoDB) %>%
+            addAwesomeMarkers(vehicles$lng,vehicles$lat,icon=icons, popup =vehicles$content,
+                              options = popupOptions(closeButton = TRUE,textsize = "15px"),label =(vehicles$plate),labelOptions=labelOptions(textsize = "15px")) %>%
+            addAwesomeMarkers(lng=w_origin$longitude,lat=w_origin$latitude,icon = icon_w, label=w_origin$warehouse,
+                              labelOptions = labelOptions(textsize = "15px",noHide = T,textOnly = T))
+          
+          map=setView(map,median(w_origin$longitude),median(w_origin$latitude), zoom = 14)
+          map
+          
+          
+        })
+        
+        
+      }
+    }else{
+      showModal(modalDialog("No Existen Shoppers Asociados a la bodega seleccionada",
+                            easyClose = T,
+                            footer = NULL))
+      removeModal()
+    }
+    
+    removeModal()
+  })
+  
+  observeEvent(input$update_shoppers,{
+    fleet=n_position()
+    vehicles=f_location()
+    
+    
+    fleet=left_join(fleet,vehicles,"plate")
+    no_fleet=fleet[which(fleet$assistance_status==0),]
+    
+    fleet=left_join(fleet,mirror_ot,"plate")
+    plate_status=split(fleet,f=fleet$plate)
+    result=data.frame()
+    for(i in 1:length(plate_status)){
+      
+      temp=plate_status[[i]]
+      temp[is.na(temp)]=NA
+      
+      parameter=length(which(temp$status.y=="Dispatched"))
+      if((parameter)>0){
+        estado=paste0((parameter)," Pedidos")
+      }else{
+        estado="Retorno"  
+      }
+      if(unique(temp$assistance_status)[1]==0){
+        estado="No asistió"
+      }
+      
+      ultimo_despacho=max(temp$despachado[which(is.na(temp$despachado)==F)])
+      
+      ultima_gestion=max(temp$management_date[which(is.na(temp$management_date)==F)])
+      if(is.na(ultima_gestion)==T){
+        ultima_gestion= ultimo_despacho
+      }
+      placa=unique(temp$plate)
+      bodega=unique(vlookup(temp$warehouse_id,warehouses,"warehouse","id"))[1]
+      franja=unique(temp$stripe)[1]
+      telefono=unique(temp$phone)[1]
+      gps=unique(temp$lastUpdate)[1]
+      temp=cbind(placa,franja,bodega,telefono,estado,ultimo_despacho,ultima_gestion,gps)
+      
+      result=rbind(result,temp)
+    }
+    parameter=which(is.na(result$ultimo_despacho)&is.na(result$ultima_gestion))
+    if(length(parameter)>0){
+      plates_off=as.character(result[parameter,"placa"])
+      result=result[-parameter,]
+    }else{
+      plates_off=NA 
+    }
+    parameter=which(is.na(result$ultimo_despacho)==T)
+    if(length(parameter)>0){
+      result[parameter,"ultimo_despacho"]=result$ultima_gestion[parameter]
+    }
+    
+    parameter=which(is.na(result$ultima_gestion)==T)
+    if(length(parameter)>0){
+      result[parameter,"ultima_gestion"]=result$ultimo_despacho[parameter]
+    }
+    
+    date=with_tz(Sys.time(),tzone = 'America/Bogota')
+    result=result %>%
+      mutate(across(everything(), as.character))
+    result$ultimo_despacho=as.character(result$ultimo_despacho)
+    result$ultima_gestion=as.character(result$ultima_gestion)
+    result$placa=as.character(result$placa)
+    result$franja=as.character(result$franja)
+    result$bodega=as.character(result$bodega)
+    result$telefono=as.character(result$telefono)
+    result$estado=as.character(result$estado)
+    result$gps=as.character(result$gps)
+    result$minutos=round(difftime(date,pmax(result$ultimo_despacho,result$ultima_gestion),units = "mins"))
+    result=result[order(-result$minutos),]
+    
+    result$gps=round(difftime(date,result$gps,units = "mins"))
+    parameter=which(grepl("Retorno",result$estado)==T)
+    lat_v=vlookup(result$placa,vehicles,"lat","plate")
+    lng_v=vlookup(result$placa,vehicles,"lng","plate")
+    lat_w=vlookup(result$bodega,warehouses,"latitude","warehouse")
+    lng_w=vlookup(result$bodega,warehouses,"longitude","warehouse")
+    
+    result$distancia_cedi=round(110.13*sqrt((lat_v-lat_w)^(2)+(lng_v-lng_w)^(2)),1)
+    result$distancia_cedi=paste0(result$distancia_cedi," Km(s)")
+    result$estado=as.character(result$estado)
+    result[which(result$distancia_cedi<=0.1),"estado"]="Cedi"
+    result$ultimo_despacho=format(as.POSIXct(result$ultimo_despacho), "%H:%M %p")
+    result$ultima_gestion=format(as.POSIXct(result$ultima_gestion), "%H:%M %p")
+    gps=result[,c("gps")]
+    gps=paste0(gps," Minuto(s)")
+    result=result[,-8]
+    result=cbind(result,gps)
+    colnames(result)[ncol(result)]="Última señal gps hace:"
+    if(nrow(no_fleet)>0){
+      no_fleet$warehouse_id=vlookup(no_fleet$warehouse_id,warehouses,"warehouse","id")
+      no_fleet=select(no_fleet,plate,stripe,warehouse_id)
+      no_fleet=data.frame(no_fleet,"","No asistió","","","","","")
+      colnames(no_fleet)=colnames(result)
+      result=rbind(result,no_fleet)
+    }
+    output$result_ot<- DT::renderDataTable(server=F,{
+      
+      DT::datatable(result,
+                    class = 'cell-border stripe',
+                    rownames=FALSE,
+                    colnames=paste0('<b>',colnames(result),'</b>'),
+                    extensions = list("Scroller"),
+                    options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,columnDefs = list(list(className = 'dt-center', targets = 0:2)),scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                 lengthChange = FALSE,paging = FALSE),
+                    selection=list(mode="single", target="row"),
+                    filter = 'top',escape = FALSE)%>%
+        formatStyle(columns = c(1:ncol(result)), fontSize = '110%')
+    })
+    
+    output$download_filtered_r <- {
+      dl=result
+      downloadHandler(
+        filename = paste0("Corte-",Sys.time(),".xlsx"),
+        content = function(file){
+          writexl::write_xlsx(dl,
+                              file)
+        }
+      )}
+    
+    
+    output$ui_but_dl_r <- renderUI({
+      column(1,
+             br(),
+             downloadButton(outputId = "download_filtered_r",
+                            label = "Descargar datos filtrados")
+             
+      )
+      
+      
+    })
+    
+    
+  })
+  
+  
+  observeEvent(input$sidebar,{
+    observeEvent(input$w_report,{
+      if(input$sidebar=="opc3"){
+        pickers_qry=get_query("shiny",pickers_qry)
+        warehouse_id=expss::vlookup(input$w_report,warehouses,"id","warehouse")
+        pickers_qry=pickers_qry[which(pickers_qry$warehouse_id==warehouse_id),]
+        output$pickers_ui=renderUI({
+          if(nrow(pickers_qry)>0){
+            {
+              fluidRow(
+                column(3,
+                       selectInput(
+                         "picker_id",
+                         label ="Nombre:",
+                         choices =unique(pickers_qry$picker_name)
+                       )
+                ),
+                column(1,
+                       br(),
+                       actionButton(
+                         'picker_report',
+                         'Generar',
+                         class = "btn btn-primary",
+                         style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                       )
+                )
+              )
+            }
+          }else{
+            tags$h2(paste0("Sin registros"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;")
+          }
+        })
+      }
+    })
+  })
+  
+  # Evento para imprimir la linea de tiempo del picker.
+  
+  observeEvent(input$picker_report,{
+    
+    # Realizar la consulta del picker.
+    
+    pickers=get_query("shiny",pickers_qry)
+    pickers_qry <- pickers
+    picker_name <- input$picker_id
+    today <- as.Date(Sys.Date(),format = "%Y-%m-%d")
+    
+    # Convertir formatos de fecha.
+    
+    pickers$starting_date <- strptime(pickers$starting_date,"%Y-%m-%d %H:%M:%S")
+    pickers$ending_date <- strptime(pickers$ending_date,"%Y-%m-%d %H:%M:%S")
+    pickers$start_picking_date <- strptime(pickers$start_picking_date,"%Y-%m-%d %H:%M:%S")
+    pickers$end_picking_date <- strptime(pickers$end_picking_date,"%Y-%m-%d %H:%M:%S")
+    pickers$systime <- strptime(pickers$systime,"%Y-%m-%d %H:%M:%S")
+    
+    # Filtros al dataset de pickers.
+    
+    pickers <- pickers[which(pickers$picker_name == picker_name),]
+    pickers <- pickers[which(as.Date(pickers$systime,format = "%Y-%m-%d") == today),]
+    pickers <- pickers[,-c(12)]
+    pickers <- unique(pickers)
+    
+    if(nrow(pickers) > 0){
+      
+      start_picking_timestamp <- min(pickers$starting_date)
+      ending_picking_timestamp <- max(pickers$ending_date)
+      pickers <- pickers[order(pickers$starting_date),]
+      
+      # Analizar tiempos libres.
+      
+      analysis_picker <- data.frame(c())
+      ciclo <- 0
+      
+      for (i in 1:nrow(pickers)) {
+        
+        # Avance del ciclo.
+        
+        ciclo <- ciclo + 1
+        
+        if(ciclo == 1){
+          
+          analysis_picker <- pickers[i,]
+          analysis_picker$type <- "Picking"
+          
+        }else{
+          
+          mins_between_order <- difftime(pickers$start_picking_date[i],pickers$end_picking_date[i-1],units="mins")
+          if(mins_between_order >= 5){
+            
+            analysis_picker_tem <- pickers[i,]
+            analysis_picker_tem$order_id <- ""
+            analysis_picker_tem$start_picking_date <- pickers$end_picking_date[i-1]
+            analysis_picker_tem$end_picking_date <- pickers$start_picking_date[i]
+            analysis_picker_tem$starting_date <- pickers$end_picking_date[i-1]
+            analysis_picker_tem$ending_date <- pickers$start_picking_date[i]
+            analysis_picker_tem$type <- "Rest"
+            analysis_picker <- rbind(analysis_picker,analysis_picker_tem)
+            analysis_picker_tem <- pickers[i,]
+            analysis_picker_tem$type <- "Picking"
+            analysis_picker <- rbind(analysis_picker,analysis_picker_tem)
+            
+          }else{
+            
+            analysis_picker_tem <- pickers[i,]
+            analysis_picker_tem$type <- "Picking"
+            analysis_picker <- rbind(analysis_picker,analysis_picker_tem)
+            
+          }
+          
+        }
+        
+      }
+      
+      # Extraer minutos u horas de duracion.
+      
+      analysis_picker$duration_of_action <- difftime(analysis_picker$end_picking_date,analysis_picker$start_picking_date,units = "mins")
+      
+    }else{
+      
+      print("No hay información del picker actual")
+      
+    }
+    
+    if(!is.null(nrow(analysis_picker))){
+      if(nrow(analysis_picker) > 0){
+        # Algunos datos del picker.
+        start_time <- min(analysis_picker$starting_date)
+        end_time <- max(analysis_picker$ending_date)
+        orders_picked <- length(unique(analysis_picker$order_id[which((analysis_picker$order_id) != "")]))
+        analysis_picker[is.na(analysis_picker)] <- 0
+        analysis_picker$items <- analysis_picker$dry_quantity + analysis_picker$cold_quantity
+        items_picked <- sum(analysis_picker$items)
+        error <- 0
+      }else{
+        error <- 1
+      }
+    }else{
+      error <- 1
+    }
+    
+    # Crear los items de la linea de tiempo.
+    
+    analysis_picker <- analysis_picker[order(analysis_picker$start_picking_date,analysis_picker$end_picking_date),]
+    ciclo <- 0
+    
+    for( i in 1:nrow(analysis_picker)){
+      
+      ciclo <- ciclo + 1
+      type <- analysis_picker$type[i]
+      
+      if(type == "Rest"){
+        
+        string <- glue('bs4TimelineItem(elevation=4,title="Pausa",icon="ban",status="danger",time="{format(round(difftime(analysis_picker$end_picking_date[i],analysis_picker$start_picking_date[i],units="mins"),2),nsmall = 2)}",footer="Tiempo sin procesos","No reporta movimiento desde {format(analysis_picker$start_picking_date[i],format="%H:%M:%S")} hasta las {format(analysis_picker$end_picking_date[i],format="%H:%M:%S")}",border = TRUE);')
+        
+      }else{
+        
+        if(nrow(analysis_picker) > 0 & i == nrow(analysis_picker)){
+          string <- glue('bs4TimelineItem(elevation=4,title="Orden {analysis_picker$order_id[i]} - {analysis_picker$sector_storage_type[i]}",icon="gear",status="success",time="{format(round(difftime(analysis_picker$end_picking_date[i],analysis_picker$start_picking_date[i],units="mins"),2),nsmall=2)}",footer="Items/min: {round(analysis_picker$items[i]/as.double(analysis_picker$duration_of_action[i]),2)}","Realizo esta acción desde {format(analysis_picker$start_picking_date[i],format="%H:%M:%S")} hasta las {format(analysis_picker$end_picking_date[i],format="%H:%M:%S")}",border = TRUE)')
+        }else{
+          string <- glue('bs4TimelineItem(elevation=4,title="Orden {analysis_picker$order_id[i]} - {analysis_picker$sector_storage_type[i]}",icon="gear",status="success",time="{format(round(difftime(analysis_picker$end_picking_date[i],analysis_picker$start_picking_date[i],units="mins"),2),nsmall=2)}",footer="Items/min: {round(analysis_picker$items[i]/as.double(analysis_picker$duration_of_action[i]),2)}","Realizo esta acción desde {format(analysis_picker$start_picking_date[i],format="%H:%M:%S")} hasta las {format(analysis_picker$end_picking_date[i],format="%H:%M:%S")}",border = TRUE);')
+        }
+        
+      }
+      
+      if(ciclo == 1){
+        timeline_items <- string[1]
+      }else{
+        timeline_items <- paste0(timeline_items,string[1])
+      }
+    }
+    
+    timeline_items <- strsplit(timeline_items, ";")
+    timeline_items <- as.vector(timeline_items[[1]])
+    
+    analysis_picker$duration_of_action <- format(round(difftime(analysis_picker$end_picking_date,analysis_picker$start_picking_date,units = "mins"),2),nsmall = 2)
+    
+    # Renderizar la linea de tiempo.
+    
+    output$pickers_ui=renderUI({
+      if(nrow(pickers_qry)>0){
+        {
+          bs4DashPage(
+            column(3,
+                   selectInput(
+                     "picker_id",
+                     label ="Nombre:",
+                     choices =unique(pickers_qry$picker_name)
+                   )
+            ),
+            column(1,
+                   br(),
+                   actionButton(
+                     'picker_report',
+                     'Generar',
+                     class = "btn btn-primary",
+                     style = "color: #585858;!important; border: 2;
+            font-weight: bold;font-size: 14px; margin:5px; padding: 9px;border-color: #585858"
+                   )
+            ),
+            br(),
+            bs4Card(
+              title = picker_name,
+              bs4Timeline(width = 12,reversed = TRUE,
+                          bs4TimelineEnd(status = "danger"),
+                          bs4TimelineLabel(Sys.Date(), status = "info"),
+                          lapply(1:length(timeline_items), function(i){
+                            eval(parse(text = timeline_items[i]))
+                          })
+                          ,
+                          bs4TimelineLabel(Sys.Date() + 1, status = "info"),
+                          bs4TimelineStart(status = "danger")
+              )
+            )
+          )
+        }
+      }else{
+        tags$h2(paste0("Sin registros"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;")
+      }
+    })
+    
+  })
+  
+  #Reporte general de operación
+  observeEvent(input$operation_report,{
+    showModal(modalDialog("Procesando Información",
+                          easyClose = F,
+                          footer = NULL))
+    
+    if(cron_parameter==0){
+      df_express=get_query("prod",df_express)
+      df_express=df_express[order(df_express$warehouse),]
+      df_express=df_express[rev(seq_len(nrow(df_express))),]
+      df_express_mx=filter(df_express,store_id==65)
+      df_express=filter(df_express,store_id!=65)
+    }else{
+      df_express=get_query("shiny","select * from drivers.df_express")
+      df_express=df_express[order(df_express$warehouse),]
+      df_express=df_express[rev(seq_len(nrow(df_express))),]
+      df_express_mx=filter(df_express,store_id==65)
+      df_express=filter(df_express,store_id!=65)
+    }
+    status_order=data.frame("s_status"=c('Validation','Initiated','Enrutado','In Progress','Alistado',
+                                         'Dispatched','Delivered','Cancelled'),"status_names"=c("Validación","Iniciado","Enrutado","En Progreso",
+                                                                                                "Alistado","Dispatched","Delivered","Cancelled"))
+    
+    unq=unique(df_express$warehouse)
+    #Reporte Colombia
+    
+    if(nrow(df_express)>0){
+      output$hour=renderUI({
+        br()
+        tags$h2(paste0("Colombia-Hora actualización: ",paste(as.Date(unique(as.POSIXct(df_express$systime))),format((unique(as.POSIXct(df_express$systime))),"%I:%M %p"),sep=" "),""), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 32px; font-weight:600;")
+      })
+      
+      output$warehouse_ui=renderUI({
+        fluidRow(
+          lapply(1:length(unq), function(i) {
+            df_warehouse=dplyr::filter(df_express,warehouse==unq[i])
+            if(length(which(df_warehouse$status=="Delivered"))>0){
+              ticket=sum(df_warehouse[which(df_warehouse$status=="Delivered"),"ticket"])
+            }else{
+              ticket=0
+            }
+            {    df=df_warehouse %>% 
+                group_by(status,shifts) %>%
+                dplyr::summarise(orders=n(),.groups = 'drop')
+              df_ultra=filter(df_warehouse,is_ultra_express==1)
+              ex=filter(df_warehouse,is_ultra_express==0 & shifts=="EX")
+              ex=ex %>% 
+                group_by(status,shifts) %>%
+                dplyr::summarise(orders=n(),.groups = 'drop')
+              df_ultra=df_ultra %>% 
+                group_by(status,shifts) %>%
+                dplyr::summarise(orders=n(),.groups = 'drop')
+              ex=dplyr::filter(ex,shifts=="EX")
+              if(nrow(ex)>0){
+                colnames(ex)[3]="EX"
+                temp_status=status_order$s_status[which(status_order$s_status %in% ex$status)]
+                ex=ex[match(temp_status,ex$status),]
+                ex$status=vlookup(ex$status,status_order,2,1)
+                ex[is.na(ex)]=0
+              }
+              er=dplyr::filter(df,shifts=="ER")
+              if(nrow(er)>0){
+                colnames(er)[3]="ER"
+                temp_status=status_order$s_status[which(status_order$s_status %in% er$status)]
+                er=er[match(temp_status,er$status),]
+                er$status=vlookup(er$status,status_order,2,1)
+                er[is.na(er)]=0
+              }
+              if(nrow(df_ultra)>0){
+                colnames(df_ultra)[3]="Ultra"
+                temp_status=status_order$s_status[which(status_order$s_status %in% df_ultra$status)]
+                df_ultra=df_ultra[match(temp_status,df_ultra$status),]
+                df_ultra$status=vlookup(df_ultra$status,status_order,2,1)
+                df_ultra[is.na(df_ultra)]=0
+              }
+              
+            }
+            
+            colors=c("primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark")
+            
+            bs4Card(
+              solidHeader = "FALSE",
+              title = unique(df_warehouse$warehouse),
+              width = 4,
+              labelStatus = "danger",
+              
+              fluidRow(
+                column(
+                  width = 4,
+                  tags$h2(paste0("Entrega Rapida"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;")
+                  ,
+                  if(nrow(er)>0){
+                    lapply(1:nrow(er), function(j) {
+                      
+                      descriptionBlock(
+                        tags$h2(paste0(er$status[j],": ",er$ER[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                      )
+                      
+                    })
+                    
+                  }  
+                ),
+                column(
+                  width = 4,
+                  tags$h2(paste0("Express"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                  if(nrow(ex)>0){
+                    lapply(1:nrow(ex), function(j) {
+                      
+                      descriptionBlock(
+                        tags$h2(paste0(ex$status[j],": ",ex$EX[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                      )
+                    })
+                  }
+                  
+                ),
+                column(
+                  width = 4,
+                  tags$h2(paste0("Ultra"), class = "text-center", style = "padding-top: 0;color:black;font-size: 19px; font-weight:800;"),
+                  if(nrow(df_ultra)>0){
+                    lapply(1:nrow(df_ultra), function(j) {
+                      
+                      descriptionBlock(
+                        tags$h2(paste0(df_ultra$status[j],": ",df_ultra$Ultra[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 17px; font-weight:500;")
+                      )
+                    })
+                  }
+                  
+                )
+              ),
+              footer = fluidRow(
+                column(4,
+                       tags$h4("Total Entregados: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(length(which(df_warehouse$status=="Delivered")), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;"),
+                ),
+                column(4,
+                       tags$h4("Valor: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(printCurrency(ticket), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;")
+                ),
+                column(4,
+                       tags$h4("Placas Activas: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(length(unique(df_warehouse[which(df_warehouse$status=="Dispatched"),"plate"])), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;")
+                )
+              )
+            )
+            
+          }),
+        )
+      })
+    }
+    #Reporte México
+    if(nrow(df_express_mx)>0){
+      output$hour_mx=renderUI({
+        br()
+        tags$h2(paste0("MX-Hora actualización: ",paste(as.Date(unique(as.POSIXct(with_tz(Sys.time(),tzone ="America/Mexico_City")))),format((unique(as.POSIXct(with_tz(Sys.time(),tzone ="America/Mexico_City")))),"%I:%M %p"),sep=" "),""), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 32px; font-weight:600;")
+      })
+      unq_mx=unique(df_express_mx$warehouse)
+      output$warehouse_ui_mx=renderUI({
+        fluidRow(
+          lapply(1:length(unq_mx), function(i) {
+            df_warehouse=dplyr::filter(df_express_mx,warehouse==unq_mx[i])
+            if(length(which(df_warehouse$status=="Delivered"))>0){
+              ticket=sum(df_warehouse[which(df_warehouse$status=="Delivered"),"ticket"])
+            }else{
+              ticket=0
+            }
+            {    df=df_warehouse %>% 
+                group_by(status,shifts) %>%
+                dplyr::summarise(orders=n(),.groups = 'drop')
+              
+              ex=dplyr::filter(df,shifts=="EX")
+              if(nrow(ex)>0){
+                colnames(ex)[3]="EX"
+                temp_status=status_order$s_status[which(status_order$s_status %in% ex$status)]
+                ex=ex[match(temp_status,ex$status),]
+                ex$status=vlookup(ex$status,status_order,2,1)
+                ex[is.na(ex)]=0
+              }
+              er=dplyr::filter(df,shifts=="ER")
+              if(nrow(er)>0){
+                colnames(er)[3]="ER"
+                temp_status=status_order$s_status[which(status_order$s_status %in% er$status)]
+                er=er[match(temp_status,er$status),]
+                er$status=vlookup(er$status,status_order,2,1)
+                er[is.na(er)]=0
+              }
+            }
+            colors=c("primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark","primary", "success", "warning", "danger", "dark")
+            
+            bs4Card(
+              solidHeader = "FALSE",
+              title = unique(df_warehouse$warehouse),
+              width = 4,
+              labelStatus = "danger",
+              
+              fluidRow(
+                column(
+                  width = 6,
+                  tags$h2(paste0("Entrega Rapida"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;"),
+                  if(nrow(er)>0){
+                    lapply(1:nrow(er), function(j) {
+                      
+                      descriptionBlock(
+                        tags$h2(paste0(er$status[j],": ",er$ER[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 20px; font-weight:500;")
+                      )
+                      
+                    })
+                  }
+                ),
+                column(
+                  width = 6,
+                  tags$h2(paste0("Express"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;"),
+                  if(nrow(ex)>0){
+                    lapply(1:nrow(ex), function(j) {
+                      descriptionBlock(
+                        tags$h2(paste0(ex$status[j],": ",ex$EX[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 20px; font-weight:500;")
+                      )
+                    })
+                  }
+                  
+                )
+              ),
+              footer = fluidRow(
+                column(4,
+                       tags$h4("Total Entregados: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(length(which(df_warehouse$status=="Delivered")), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;"),
+                ),
+                column(4,
+                       tags$h4("Valor: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(printCurrency(ticket), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;")
+                ),
+                column(4,
+                       tags$h4("Placas Activas: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 16px; font-weight:600;"),
+                       tags$h4(length(unique(df_warehouse[which(df_warehouse$status=="Dispatched"),"plate"])), class = "text-center", style = "padding-top: 0;color:black;font-size: 20px; font-weight:600;")
+                )
+              )
+            )
+            
+          }),
+        )
+      })
+    }
+    #Hora México
+    
+    #Hora México
+    
+    
+    removeModal()
+  })
+  
+  #Mapa General
+  observeEvent(input$total_map,{
+    if(exists("operation_df")){
+      rm(operation_df)
+    }
+    disable("general_map")
+    showModal(modalDialog("Procesando Información",
+                          easyClose = F,
+                          footer = NULL))
+    
+    vehicles=f_location()
+    
+    if(nrow(vehicles)>0){
+      result=total_map_parameters(vehicles)
+      vehicles=result[[3]]
+      orders=result[[1]]
+      activities=result[[2]]
+      
+      activities=dplyr::filter(activities,status=="In Progress")
+      if(nrow(orders)>0){
+        orders$transporter=vlookup(orders$id,transporters,"fullname","t_id")
+        orders$transporter=paste(orders$transporter,orders$class_type,sep="-")
+        operation_df=orders[duplicated(orders$plate)==F,]
+        operation_df=dplyr::select(operation_df,plate,transporter,warehouse,driver,phone,dispatched_date,route)
+        drop=aggregate(orders$order_id,list(orders$plate),length)
+        operation_df$orders=vlookup(operation_df$plate,drop,2,1)
+        operation_df$dispatched_date=as.POSIXct(as.numeric(operation_df$dispatched_date)/1000, origin = "1970-01-01")
+        operation_df$map=shinyInputg(actionButton,(operation_df$plate),'buttonmap_', label = 'Abrir',style="padding:6px; font-size:80%;color:#fff; background-color:#01A5BF; border-color: #fff", onclick ='Shiny.setInputValue(\"select_map\", this.id, {priority: \"event\"})')
+        operation_df$plate_m=operation_df$plate
+        operation_df$plate=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',operation_df$phone,'&amp;text=Logística Merqueo" target="_blank">',operation_df$plate,'</a>')
+        
+      }
+      if(nrow(activities)>0){
+        activities=activities[duplicated(activities$plate)==F,]
+        drop=aggregate(activities$plate,list(activities$plate),length)
+        activities=data.frame("plate"=activities$plate,"transporter"=activities$transporter,"warehouse"=activities$warehouse,
+                              "driver"=activities$activity,"phone"=activities$phone,"dispatched_date"=activities$created_at,"route"="","map"="")
+        
+        activities$dispatched_date=format(as.POSIXct(activities$dispatched_date),"%k:%M")
+        activities$orders=vlookup(activities$plate,drop,2,1)
+        activities$plate_m=activities$plate
+        activities$plate=paste0('<a href="https://api.whatsapp.com/send?phone=57%20',activities$phone,'&amp;text=Logística Merqueo" target="_blank">',activities$plate,'</a>')
+        
+        if(exists("operation_df")){
+          operation_df=rbind(operation_df,activities)
+        }else{
+          operation_df=activities
+        }
+      }
+      if(exists("operation_df")){
+        df_operation(operation_df)
+        
+        operation_df=operation_df[,-10]
+        operation_df$driver=paste(operation_df$driver,operation_df$phone,sep="/")
+        operation_df=operation_df[,-5]
+        colnames(operation_df)=c("Placa","3ro","Bodega","Vehículo","Despacho","Ruta","Pedidos","Mapa")
+        df_orders(orders)
+        output$operation_df<- DT::renderDataTable({
+          DT::datatable(operation_df,
+                        class = 'cell-border stripe',
+                        rownames=FALSE,
+                        colnames=paste0('<b>',colnames(operation_df),'</b>'),
+                        extensions = list("Scroller"),
+                        options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,columnDefs = list(list(className = 'dt-center', targets = 0:4)),scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                     lengthChange = FALSE,paging = FALSE),
+                        selection=list(mode="single", target="row"),
+                        filter = 'top',escape = FALSE)%>%
+            formatStyle(columns = c(1:ncol(operation_df)), fontSize = '100%')
+        })
+        
+        
+      }
+      
+      df<-reactive({
+        
+        if(input$op_status!='Todos'){
+          if(input$op_status=='Libres'){
+            vehicles=filter(vehicles,status=="free")
+          }else{
+            vehicles=filter(vehicles,status!="free")
+          }
+        }else{
+          vehicles=vehicles
+        }
+      })
+      if(nrow(vehicles)>0){
+        output$mymap <- renderLeaflet({
+          vehicles=df()
+          icons <- awesomeIcons(
+            icon =vehicles$icon,
+            iconColor = 'black',
+            library = 'fa',
+            markerColor = if_else(vehicles$status=="free","green","orange")
+          )
+          
+          icon_w <- awesomeIcons(
+            icon = 'store',
+            iconColor = 'black',
+            library = 'fa',
+            markerColor ="purple"
+          )
+          
+          map=leaflet() %>% 
+            addProviderTiles(providers$CartoDB) %>%
+            addAwesomeMarkers(vehicles$lng,vehicles$lat,icon=icons, popup =vehicles$content,
+                              options = popupOptions(closeButton = TRUE,textsize = "15px"),label =(vehicles$plate),labelOptions=labelOptions(textsize = "15px")) %>%
+            addAwesomeMarkers(lng=warehouses$longitude,lat=warehouses$latitude,icon = icon_w, label=warehouses$warehouse,
+                              labelOptions = labelOptions(textsize = "15px",noHide = T,textOnly = T))
+          
+          map=setView(map,median(vehicles$lng),median(vehicles$lat), zoom = 12)
+          map
+          
+          
+        })
+      }else{
+        shinyalert("Oops!", "No existe placas en el estado indicado!!", type = "error")
+      }
+      
+      removeModal()
+    }else{
+      shinyalert("Oops!", "No existe ningún vehículo en operación!!", type = "error")
+    } 
+    
+    
+    
+  })
+  
+  
+  observeEvent(input$cancel,{
+    removeModal()
+  })
+  
+  observeEvent(input$warehouse_routing,{
+    showModal(modalDialog("Procesando Información",
+                          easyClose = F,
+                          footer = NULL))
+    
+    
+    if(input$shift_type=="Todos"){
+      parameter_shift=" in('EX','ER')"
+      
+    }
+    else if(input$shift_type=="EX"){
+      parameter_shift="='EX'"
+    }
+    else if(input$shift_type=="ER"){
+      parameter_shift="='ER'"
+    }
+    
+    w_route=expss::vlookup(input$w_report,warehouses,1,4)
+    vol_parameter=if_else(input$route_type=="Vehículos",F,T)
+    list=route_orders(w_route,assigned_orders = NULL,vol_parameter,parameter_shift)
+    routes=list$routes
+    data_routes=list$df
+    residuals=list$residuals
+    if(length(residuals)>0){
+      residuals=do.call(rbind,residuals)
+    }
+    
+    result=data.frame()
+    
+    if(length(routes)>0){
+      for(i in 1:length(routes)){
+        temp=cbind("route_id"=i,routes[[i]])  
+        result=rbind(result,temp)
+      }
+      if(nrow(result)>0){
+        result$stripe=vlookup(result$id,data_routes,"delivery_time","id")
+        result$shifts=vlookup(result$id,data_routes,"shifts","id")
+        result$ticket=vlookup(result$id,data_routes,"ticket","id")
+        result$p_sequence=vlookup(result$id,data_routes,"planning_sequence","id")
+        result$address=paste(vlookup(result$id,data_routes,"user_address","id"),
+                             vlookup(result$id,data_routes,"user_address_further","id"),sep="/")
+        result$payment_method=vlookup(result$id,data_routes,"payment_method","id")
+        route_list=aggregate(result$route_id,list(result$route_id),length)
+        colnames(route_list)=c("Id","Pedidos")
+        route_list$Pedidos=route_list$Pedidos-1
+        route_list$Pedidos=paste0(route_list$Pedidos," Pedidos")
+        route_list$link=shinyInputg(actionButton,(route_list$Id),'buttonmap_', label = 'Desplegar',style="padding:6px; font-size:80%;color:#fff; background-color:#01A5BF; border-color: #fff", onclick ='Shiny.setInputValue(\"select_route\", this.id, {priority: \"event\"})')
+        df_routes(result)
+        if(length(which(data_routes$id%ni%result$id))){
+          data_routes=data_routes[which(data_routes$id%ni%result$id),]
+          df_alistado(data_routes)
+        }
+        output$routes_table<- DT::renderDataTable(server=F,{
+          
+          DT::datatable(route_list,
+                        class = 'cell-border stripe',
+                        rownames=FALSE,
+                        colnames=paste0('<b>',colnames(route_list),'</b>'),
+                        extensions = list("Scroller"),
+                        options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,columnDefs = list(list(className = 'dt-center', targets = 0:2)),scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                     lengthChange = FALSE,paging = FALSE),
+                        selection=list(mode="single", target="row"),
+                        filter = 'top',escape = FALSE)%>%
+            formatStyle(columns = c(1:ncol(route_list)), fontSize = '110%')
+        })
+      }
+      
+      if(is.data.frame(residuals)==T){
+        if(nrow(residuals)>0){
+          residuals=dplyr::select(residuals,id,available_time)
+          residuals$stripe=vlookup(residuals$id,data_routes,"delivery_time","id")
+          residuals$shifts=vlookup(residuals$id,data_routes,"shifts","id")
+          residuals$ticket=vlookup(residuals$id,data_routes,"ticket","id")
+          residuals$p_sequence=vlookup(residuals$id,data_routes,"planning_sequence","id")
+          residuals$address=paste(vlookup(residuals$id,data_routes,"user_address","id"),
+                                  vlookup(residuals$id,data_routes,"user_address_further","id"),sep="/")
+          residuals$payment_method=vlookup(residuals$id,data_routes,"payment_method","id")
+          residuals$available_time=hour_fix(round(as.numeric(residuals$available_time),2))
+          residuals$id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',residuals$id,'/details" target="_blank">',residuals$id,'</a>')
+          residuals$stripe=paste0(residuals$shifts,"/",residuals$stripe)
+          residuals$ticket=printCurrency(residuals$ticket)
+          residuals=residuals[,-4]
+          output$residuals_table<- DT::renderDataTable(server=F,{
+            colnames(residuals)=c("id_Pedido","Lím. Tiempo","Franja","Ticket","Secuencia","Dirección","Método de Pago")
+            DT::datatable(residuals,
+                          class = 'cell-border stripe',
+                          rownames=FALSE,
+                          colnames=paste0('<b>',colnames(residuals),'</b>'),
+                          extensions = list("Scroller"),
+                          options=list(dom='t',info=FALSE,autoWidth = FALSE,ordering=T,columnDefs = list(list(className = 'dt-center', targets = 0:2)),scrollX = FALSE, sScrollY = '75vh', scrollCollapse = TRUE, 
+                                       lengthChange = FALSE,paging = FALSE),
+                          selection=list(mode="single", target="row"),
+                          filter = 'top',escape = FALSE)%>%
+              formatStyle(columns = c(1:ncol(residuals)), fontSize = '110%')
+          })
+          
+        }
+      }
+    }else{
+      shinyalert("Oops!", "No hay pedidos en alistado !!", type = "error")
+    }
+    removeModal()
+    
+    
+    
+  })
+  
+  observeEvent(input$select_route,{
+    
+    selectedRow <- as.numeric(strsplit(input$select_route, "_")[[1]][2])
+    routes=df_routes()
+    alistado=df_alistado()
+    route=dplyr::filter(routes,route_id==selectedRow)
+    route$lat=as.numeric(route$lat)
+    route$lon=as.numeric(route$lon)
+    route$sequence=route$sequence-1
+    
+    w_origin=route[1,]
+    route=route[-1,]
+    color=c("red", "darkred", "green", "darkgreen", "blue", "darkblue", "cadetblue")
+    colors=data.frame(order_id=unique(route$id),
+                      color=sample(color,length(unique(route$id)),replace = T))
+    
+    output$route_map <- renderLeaflet({
+      options(osrm.server = "http://54.197.146.129:5000/", osrm.profile = "driving")
+      w_origin=data.frame("id"=w_origin$id,"lat"=w_origin$lat,"lon"=w_origin$lon,"sequence"="","delivery_time"="")
+      w_origin$id=vlookup(w_origin$id,warehouses,4,1)
+      o_destination=data.frame("id"=route$id,"lat"=route$lat,"lon"=route$lon,"sequence"=route$sequence,"delivery_time"=route$shifts)
+      selectedRoute=rbind(w_origin,o_destination)
+      selectedRoute<<-selectedRoute
+      icon_w <- awesomeIcons(
+        icon = 'store',
+        iconColor = 'black',
+        library = 'fa',
+        markerColor ="purple"
+      )
+      icon_o <- awesomeIcons(
+        icon = 'laugh',
+        iconColor ='black',
+        library = 'fa',
+        markerColor =vlookup(route$id,colors,"color","order_id"),
+        text=route$sequence
+      )
+      map={leaflet() %>% 
+          addProviderTiles(providers$CartoDB) %>%
+          addAwesomeMarkers(lat = as.numeric(selectedRoute$lat[2:nrow(selectedRoute)]),
+                            lng = as.numeric(selectedRoute$lon[2:nrow(selectedRoute)]),icon = icon_o,
+                            popupOptions(closeButton = F,keepInView=T),
+                            popup =paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',selectedRoute$id[2:nrow(selectedRoute)],'/details" target="_blank">',selectedRoute$id[2:nrow(selectedRoute)],'</a>'),  
+                            label = paste0(selectedRoute$id[2:nrow(selectedRoute)]),labelOptions(textsize = "15px",noHide = T,textOnly = F)) %>%
+          addAwesomeMarkers(lng=w_origin$lon,lat=w_origin$lat,icon = icon_w, label=w_origin$id,
+                            labelOptions = labelOptions(textsize = "15px",noHide = T,textOnly = T))
+      }
+      origenes=dplyr::select(selectedRoute,id,lon,lat)
+      
+      for(i in 1:(nrow(selectedRoute)-1)){
+        routes <- osrmRoute(src=origenes[i,],dst = origenes[i+1,], returnclass = 'sf')
+        map=addPolylines(map,data = routes,weight = 4,color =colors$color[i])
+      }
+      map=setView(map,median(route$lon),median(route$lat), zoom = 13)
+      
+      map
+    })
+    output$route_status<- DT::renderDataTable(server=F,{
+      
+      {
+        route$available_time=hour_fix(as.numeric(round(route$available_time)))
+        status=data.frame(route$id,route$available_time,paste0(route$shifts,"/",route$stripe),route$p_sequence,route$sequence,route$address,
+                          paste(printCurrency(route$ticket),route$payment_method,sep="/"))
+        status$route.id=paste0('<a href="https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',status$route.id,'/details" target="_blank">',status$route.id,'</a>')
+        colnames(status)=c("Id Pedido","Tiempo Entrega","Franja","Sec. Actual","Nueva Secuencia","Dirección","Ticket")
+      }
+      status= DT::datatable(status,class = 'cell-border stripe',
+                            options = list(dom='t',info=FALSE,autoWidth = TRUE,
+                                           
+                                           lengthChange = FALSE,paging = FALSE,
+                                           pageLength = nrow(status),scrollX = T),
+                            selection=list(mode="single", target="row"),
+                            rownames =FALSE,
+                            filter = 'bottom',escape = FALSE,editable = FALSE)%>%
+        formatStyle(columns = c(1:ncol(status)), fontSize = '120%')
+    })
+    
+    output$route_result=renderUI({
+      bs4Card(
+        title = "Ruta",
+        width = 12,
+        status = "warning",
+        closable = FALSE,
+        maximizable = TRUE,
+        collapsible = FALSE,
+        leafletOutput("route_map",height = 500),
+        dataTableOutput("route_status")
+      )
+    })
+  })
+  
+  
+  observeEvent(input$ultra,{
+    sound<<-0
+    removeModal()
+  })
+  observeEvent(input$modal_login,{
+    disable("modal_login")
+    #wd=paste(str_split(getwd(),"/")[[1]][(1:length(str_split(getwd(),"/")[[1]])-1)],collapse="/")
+    #wd=paste0(wd,"/com_between_areas/bs4dash")
+    #source(file = glue("{wd}/modal_login.R"), local=TRUE)
+    
+    source(file = glue("{getwd()}/modal_login.R"), local=TRUE)
+    showModal(log_session)
+    
+  })
+  observeEvent(input$log_out,{
+    output$logged <- renderText({FALSE})
+    current_user <<- FALSE
+    output$current_user <- renderText({FALSE})
+    
+    
+  })
+  observeEvent(input$login,{
+    if(input$userName == "" | input$passwd == ""){
+      shinyalert("Oops!", "Usuario o contraseña incorrecta !!", type = "error")
+    }else{
+      userName <- input$userName
+      password <- input$passwd
+      # Validar que el usuario y contrasena coinciden.
+      
+      users_unit <- users[which(users$user_name==userName),]
+      if(nrow(users_unit) == 0){
+        
+        shinyalert("Oops!", "Usuario o contraseña incorrecta !!", type = "error")
+        
+      }else{
+        
+        if((password== users_unit$text_password)){
+          current_user <<- users_unit
+          
+          
+          output$logged <- reactive({FALSE})
+          
+          output$current_user <- renderText({TRUE})
+          
+          #wd=paste(str_split(getwd(),"/")[[1]][(1:length(str_split(getwd(),"/")[[1]])-1)],collapse="/")
+          #wd=paste0(wd,"/com_between_areas/bs4dash")
+          #source(file = glue("{wd}/external_ui.R"), local=TRUE)
+          
+          source(file = glue("{getwd()}/external_ui.R"), local=TRUE)
+          outputOptions(output, 'current_user', suspendWhenHidden = FALSE)
+          refreshTables(input,output,session)
+          
+          
+          # Remover el modal
+          removeModal()
+          
+          
+          
+          
+          
+          
+          
+        }else{
+          shinyalert("Oops!", "Usuario o contraseña incorrecta !!", type = "error")
+          
+        }
+      }
+      
+    }
+    
+  })
+  
+  observeEvent(input$id_productos_agregados,{
+    
+    # mostra alert de loading  
+
+    
+    country_select <-vlookup(input$w_report,country_city,"country","warehouse")
+    if(country_select== "Colombia"){
+      time_country ="05:00:00"
+    }else if(country_select== "Brasil"){
+      time_country ="03:00:00"
+    }else if (country_select== "México"){
+      time_country ="06:00:00"
+    }
+    
+    # consulta a banco de dados
+    query_productos_agregados <-{glue("select o.id,
+w.warehouse bodega,
+o.status, 
+op.fulfilment_status estado_producto,
+timediff(subtime(now(), '{time_country}'), o.real_delivery_date)
+tiempo_entrega,
+o.real_delivery_date,
+dw.delivery_window fecha_entrega,
+subtime(now(), '{time_country}') hora_ahora
+from
+merqueopro.orders o 
+inner join merqueopro.order_products op on op.order_id = o.id 
+inner join merqueopro.stores s on s.id = o.store_id 
+inner join merqueopro.cities c on c.id = s.city_id 
+inner join merqueopro.delivery_windows dw on dw.id = o.delivery_window_id 
+inner join merqueopro.order_logs ol on ol.order_id = o.id 
+inner join merqueopro.order_groups og on og.id = o.group_id
+inner join merqueopro.warehouses w on w.id = og.warehouse_id
+where 
+o.status =  'In Progress' 
+and ol.type like '%%agrega%%'
+and op.fulfilment_status in ('Pending', 'Missing')
+and w.warehouse = '{input$w_report}'
+group by o.id
+")}
+    #query_productos_agregados<-iconv(query_productos_agregados, from = 'UTF-8', to = 'ASCII//TRANSLIT')
+
+    query_productos_agregados <- get_query('prod',query_productos_agregados)   
+    browser()
+    if (nrow(query_productos_agregados) == 0){
+      query_productos_agregados <- data.frame(id = c('vazio'), 
+                                              bodega = c('vazio'),
+                                              status = c('vazio'),
+                                              estado_producto = c('vazio'),
+                                              tiempo_entrega =c('vazio'),
+                                              fecha_entrega =c('vazio'),
+                                              real_delivery_date=c('vazio'),
+                                              hora_ahora = c('vazio')
+                                              )
+    }else {
+      query_productos_agregados$tiempo_entrega <- format(as.POSIXct(query_productos_agregados$tiempo_entrega/1000, origin='1970-01-01'), "- %k:%M:%S")
+      query_productos_agregados$real_delivery_date <- format(as.POSIXct(query_productos_agregados$real_delivery_date/1000, origin='1970-01-01'), "%d-%m-%Y %k:%M:%S")
+      query_productos_agregados$hora_ahora <- format(as.POSIXct(s_t), "%d-%m-%Y %H:%M:%S %p")
+    }
+    # saida de informações
+    
+    createLinkorder <- function(val, Abrir) {
+      val=paste('<a target="_blank" href="', val, '"class="btn btn-primary">', Abrir, '</a>', sep="")
+      val
+    }
+    
+    query_productos_agregados <- dplyr::select(query_productos_agregados, 
+                                               id , 
+                                               bodega ,
+                                               status ,
+                                               estado_producto ,
+                                               tiempo_entrega ,
+                                               fecha_entrega ,
+                                               real_delivery_date ,
+                                               hora_ahora)
+    
+    if (nrow(query_productos_agregados) > 0) {
+      query_productos_agregados$id = createLinkorder(paste('https://v3-dashboard.merqueo.com/admin-m3rqu30/orders-storage/',query_productos_agregados$id,'/details',sep=""),query_productos_agregados$id)
+      output$dt_productos_agregados <- DT::renderDataTable(server=F,{
+        DT::datatable(
+          query_productos_agregados,
+          class = 'cell-border stripe',
+          extensions = 'Buttons',
+          options = list(dom = 'Brfti',
+                         #buttons = 'excel',
+                         pageLength = nrow(query_productos_agregados), scrollX = T, scrollY = T, autoWidth = TRUE),
+          selection=list(mode="single", target="row"),
+          rownames=FALSE,
+          filter = 'top',escape = FALSE)
+      })
+    } else {
+      output$dt_productos_agregados <- DT::renderDataTable(server=F,{
+        query_productos_agregados
+      })
+    }
+    
+
+  })
+  
+  observeEvent(input$save_er,{
+    
+    #current_df=filter(df_express,plate==input$plate_cost)
+    md_current=md[which(md$status=="Dispatched"),]
+    current_df=rbind(df_express,md_current)
+    current_df=filter(current_df,plate==input$plate_cost & status=="Dispatched")
+    parameter=which(duplicated(current_df$order_id)==T)
+    if(length(parameter)>0){
+      current_df=current_df[-parameter,]
+    }
+    
+    if(nrow(current_df)>0){
+      current_df$w_latitude=vlookup(current_df$w_id,warehouses,"latitude","id")
+      current_df$w_longitude=vlookup(current_df$w_id,warehouses,"longitude","id")
+      
+      array_list=function(current_df,rates){
+        current_df$w_latitude=as.numeric(current_df$w_latitude)
+        current_df$w_longitude=as.numeric(current_df$w_longitude)
+        current_df$user_address_latitude=as.numeric(current_df$user_address_latitude)
+        current_df$user_address_longitude=as.numeric(current_df$user_address_longitude)
+        current_df$distance_to_origin=round(110.618*sqrt((current_df$w_latitude-current_df$user_address_latitude)^2+(current_df$w_longitude-current_df$user_address_longitude)^2),1)
+        current_df$distance_between_sequences=0
+        current_df=current_df[order(-current_df$distance_to_origin),]
+        current_df$cost=0
+        current_df$distance_to_origin=round(current_df$distance_to_origin,1)
+        current_df=current_df[order(-current_df$distance_to_origin),]
+        if(nrow(current_df)>0){
+          parameter=which(nchar(current_df$distance_to_origin)==1)
+          if(length(parameter)>0){
+            current_df$distance_to_origin[parameter]=paste0(current_df$distance_to_origin[parameter],".0")
+          }
+          current_df$cost=vlookup(current_df$distance_to_origin,rates,2,1)
+        }
+        
+        parameter=which(current_df$w_id==6)
+        if(length(parameter)>0){
+          current_df[parameter,"cost"]=current_df[parameter,"cost"]+700
+        }
+        return(current_df)
+      }
+      current_df=array_list(current_df,rates)
+      current_df$distance_to_origin=as.numeric(current_df$distance_to_origin)
+      
+      df_print=data.frame("order_id"=current_df$order_id,"distance"=current_df$distance_to_origin,"value"=current_df$cost)
+      data_driver=data.frame("transporter"=unique(current_df$transporter),"driver"=unique(current_df$driver),"plate"=unique(current_df$plate),"warehouse_id"=unique(current_df$w_id),"warehouse"=unique(current_df$warehouse))
+      cost_results=list()
+      cost_results[[1]]=df_print
+      cost_results[[2]]=data_driver
+      cost_results<<-cost_results
+      if(nrow(current_df)>0){
+        output$card_cost<-renderUI(
+          
+          
+          bs4Card(
+            width =6,
+            solidHeader = "FALSE",
+            title =h2(paste0("Registro de Costos y Distancias"), class = "text-center", style = "padding-top: 0;color:white;font-size: 22px; font-weight:800;"),
+            tags$h2(paste0(data_driver$plate," - ",data_driver$transporter," - ",data_driver$driver), class = "text-center", style = "padding-top: 0;color:black;font-size: 24px; font-weight:500;"),
+            br(),
+            fluidRow(
+              column(
+                width = 4,
+                tags$h2(paste0("No. Pedido"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;"),
+                {
+                  lapply(1:nrow(df_print), function(j) {
+                    
+                    descriptionBlock(
+                      tags$h2(paste0(df_print$order_id[j]), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 20px; font-weight:500;")
+                    )
+                    
+                  })
+                }
+              ),
+              column(
+                width = 4,
+                tags$h2(paste0("Distancia"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;"),
+                {
+                  lapply(1:nrow(df_print), function(j) {
+                    descriptionBlock(
+                      tags$h2(paste0(df_print$distance[j]," Km"), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 20px; font-weight:500;")
+                    )
+                  })
+                }
+              ),
+              column(
+                width = 4,
+                tags$h2(paste0("Valor. Pedido"), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:800;"),
+                {
+                  lapply(1:nrow(df_print), function(j) {
+                    descriptionBlock(
+                      tags$h2(paste0(printCurrency(df_print$value[j])), class = "text-center", style = "padding-top: 0;color:#585858;font-size: 20px; font-weight:500;")
+                    )
+                    
+                  })
+                }
+              )
+              
+            ),
+            br(),
+            h2(paste0("Despacho: ",format(as.POSIXct(Sys.time()),"%d/%m/%Y %k:%M:%S %p")), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:500;"),
+            h2(paste0("Bodega: ",unique(current_df$warehouse)), class = "text-center", style = "padding-top: 0;color:black;font-size: 22px; font-weight:500;"),
+            #status ="primary",
+            footer =fluidRow(
+              column(4,
+                     h4("Cantidad: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 22px; font-weight:600;"),
+                     h4(paste0(nrow(df_print)," Pedidos")), class = "text-center", style = "padding-top: 0;color:black;font-size: 23px; font-weight:600;"),
+              column(4,
+                     h4("Kms Totales: ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 22px; font-weight:600;"),
+                     h4(paste0(sum(df_print$distance)," Km"), class = "text-center", style = "padding-top: 0;color:black;font-size: 23px; font-weight:400;"),
+              ),
+              column(4,
+                     h4("Valor Ruta : ", class = "text-center", style = "padding-top: 0;color:#008DC2;font-size: 22px; font-weight:600;"),
+                     h4(printCurrency(sum(df_print$value))), class = "text-center", style = "padding-top: 0;color:black;font-size: 23px; font-weight:600;"),
+              
+            )
+            
+            
+            
+            
+          )
+        )
+        
+        
+
+        
+      }
+    }
+  })
+  
+  
+  modal_add_register <- function(input,output,session){
+    {
+      
+      
+      {modalDialog(
+        tags$h2(paste0("Confirmación de Registro"), class = "text-center", style = "padding-top: 0;color:#0099ff;font-size: 28px; font-weight:800;"),
+        tags$h1("¿Deseas guardar el registro de la Ruta?", class = "text-center", style = "padding-top: 0;color: black;font-size: 26px; font-weight:600;"),
+        size = 'm',
+        passwordInput("pass_code","Ingrese la clave asignada a la bodega para despacho:"),
+        footer = list(
+          actionButton(
+            'save_modal',
+            'Guardar',
+            class = "btn btn-primary",
+            style = "color: white;background-color: #0099ff !important; border: 2;
+            font-weight: bold; margin:5px; padding: 10px;border-color: black"
+          ),
+          actionButton(
+            'exit_delete_modal',
+            'Cancelar',
+            class = "btn btn-primary",
+            style = "color: black;background-color: white !important; border: 2;
+            font-weight: bold; margin:5px; padding: 10px;border-color: black"
+          )
+        )
+      )
+      }}
+    
+  }
+  
+  observeEvent(input$save_er_cost,{
+    showModal(modal_add_register(input,output,session))
+  })
+  
+  observeEvent(input$save_modal,{
+    if(input$pass_code==2705){
+      removeModal()
+      transporter_info=cost_results[[2]]
+      route_info=cost_results[[1]]
+      json=paste0('"orders":{',paste(route_info$order_id,collapse = ','),'}"distances":{',paste(route_info$distance,collapse=','),'}"values":{',paste(route_info$value,collapse=','),'}')
+      orders_quantity=nrow(route_info)
+      date=format(with_tz(Sys.time(),tzone = 'America/Bogota'),format = '%F')
+      value=sum(route_info$value)
+      total_distance=sum(route_info$distance)
+      route=paste0(transporter_info$plate,"-",date,"-",route_info$order_id[1])
+      plate=transporter_info$plate
+      warehouse=transporter_info$warehouse
+      warehouse_id=transporter_info$warehouse_id
+      transporter=transporter_info$transporter
+      df_save=data.frame(route,warehouse_id,warehouse,date,orders_quantity,transporter,plate,total_distance,value,json,"created_at"=with_tz(Sys.time(),tzone = 'America/Bogota'),"updated_at"=with_tz(Sys.time(),tzone = 'America/Bogota'))
+      check_qry=paste0("select * from drivers.fast_vehicles_cost vc where vc.date='",df_save$date,"' and vc.route='",df_save$route,"'")
+      check_qry=get_query("shiny",check_qry)
+      
+      if(nrow(check_qry)==0){
+        
+        
+        shinyalert("REGISTRO ALMACENADO CON ÉXITO!!","Sos un teso!!", type = "success")
+        
+        con <- dbConnect(MySQL(), 
+                         user=user_shiny, 
+                         password=password_shiny, 
+                         dbname='drivers', 
+                         host=host_shiny)
+        
+        dbWriteTable(con,"fast_vehicles_cost",df_save,append = TRUE,row.names = FALSE)    
+        
+        dbDisconnect(con)
+        
+        
+        
+      }else{
+        shinyalert("NO SE PUEDE GUARDAR EL REGISTRO!!","Ya Existe un registro asociado a un despacho de esta placa en la última hora!!", type = "error")
+        
+      }
+    }else{
+      shinyalert("Oops!", "Clave Equivocada!!", type = "error")
+      
+    }
+    
+    
+    
+  }
+  )
+  
+  
+  observeEvent(input$exit_delete_modal,{
+    removeModal()
+  })
+  session$onSessionEnded(function(){
+    stopApp()
+  })
+  
+  
+  #wd=paste(str_split(getwd(),"/")[[1]][(1:length(str_split(getwd(),"/")[[1]])-1)],collapse="/")
+  #wd=paste0(wd,"/com_between_areas/bs4dash")
+  #source(file = glue("{wd}/com_app_services.R"), local=TRUE)
+  #source(file = glue("{wd}/com_app_functions.R"), local=TRUE)
+  
+  source(file = glue("{getwd()}/com_app_services.R"), local=TRUE)
+  source(file = glue("{getwd()}/com_app_functions.R"), local=TRUE)
+  
+  
+  
+}
+
+
+
+
+
+shinyApp(ui = ui, server = server)

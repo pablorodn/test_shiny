@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662564334381.000,
+    "dirty" : false,
+    "encoding" : "UTF8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D2E89BFA",
+    "lastKnownWriteTime" : 1662659784,
+    "last_content_update" : 1662661228455,
+    "path" : "~/Documents/GitHub/test_shiny/app.R",
+    "project_path" : "app.R",
+    "properties" : {
+        "cursorPosition" : "55,33",
+        "docOutlineVisible" : "0",
+        "scrollLine" : "41"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
