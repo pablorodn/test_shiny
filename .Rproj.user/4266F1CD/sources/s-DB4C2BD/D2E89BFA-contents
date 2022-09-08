@@ -206,14 +206,9 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     data_specie$year=lubridate::year(data_specie$eventDate)
     data_specie[is.na(data_specie$accessURI)==T,"accessURI"]="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"
     
-    
-    df= data_specie %>% 
-      group_by(year) %>% 
-      mutate(string = paste0(paste(dummie,eventDate,sep="-"), collapse = ",")) %>% 
-      mutate(events = sum(individualCount))%>%
-      distinct(year, string, .keep_all = TRUE) %>% select(year,events,string)
-    min_year=min(df$year)
-    max_year=max(df$year)
+  
+    min_year=min(data_specie$year)
+    max_year=max(data_specie$year)
     result=lapply(1:nrow(data_specie), function(i){
         temp=data_specie[i,]
         glue('bs4TimelineItem(title="",icon=icon("paint-brush"),color = "teal",time="",footer="{temp$eventDate}","Event: {temp$locality}",border = F);')
