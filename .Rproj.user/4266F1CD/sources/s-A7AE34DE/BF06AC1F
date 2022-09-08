@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662663786414.000,
+    "dirty" : false,
+    "encoding" : "UTF8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "BF06AC1F",
+    "lastKnownWriteTime" : 1662663935,
+    "last_content_update" : 1662663935,
+    "path" : "~/Documents/GitHub/test_shiny/tests/testthat/setup.R",
+    "project_path" : "tests/testthat/setup.R",
+    "properties" : {
+        "cursorPosition" : "0,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

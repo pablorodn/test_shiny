@@ -1,0 +1,15 @@
+library(shinytest2)
+
+test_that("{shinytest2} recording: test_shiny", {
+  app <- AppDriver$new(name = "test_shiny", height = 711, width = 1139)
+  app$set_inputs(selection = c("Abraxas grossulariata", "Acer negundo"))
+  app$expect_values()
+  app$set_inputs(selection = "Abraxas grossulariata")
+  app$set_inputs(selection = c("Abraxas grossulariata", "11-spot Ladybird"))
+  app$expect_values()
+  app$set_inputs(customSwitch1 = TRUE)
+  app$set_inputs(customSwitch1 = FALSE)
+  app$set_inputs(selection = c("Abraxas grossulariata", "11-spot Ladybird", "13-spot Ladybird"))
+  app$set_inputs(selection = c("Abraxas grossulariata", "11-spot Ladybird", "13-spot Ladybird", 
+      "22 spot ladybird"))
+})

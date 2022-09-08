@@ -1,0 +1,21 @@
+{
+  "input": {
+    "customSwitch1": false,
+    "dark_mode": false,
+    "selection": [
+      "Abraxas grossulariata",
+      "Acer negundo"
+    ]
+  },
+  "output": {
+    "body": {
+      "html": "<div class=\"content-wrapper\">\n  <section class=\"content\">\n    <style type=\"text/css\">.navbar-gray-dark { background-color: white; } .navbar-white { background-color: white; }<\/style>\n    <head>\n      <style>.row div {padding: 0.5% 0.5% 0.5% !important;}<\/style>\n    <\/head>\n    <div class=\"row\">\n      <div class=\"col-sm-3\">\n        <div id=\"ui_img\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n      <div class=\"col-sm-5\">\n        <div id=\"ui_mp\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n      <div class=\"col-sm-4\">\n        <div id=\"ui_tl\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n<\/div>",
+      "deps": [
+
+      ]
+    }
+  },
+  "export": {
+
+  }
+}

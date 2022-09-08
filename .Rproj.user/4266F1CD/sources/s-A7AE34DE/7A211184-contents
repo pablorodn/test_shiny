@@ -1,0 +1,1768 @@
+{
+  "input": {
+    "customSwitch1": false,
+    "dark_mode": false,
+    "selection": [
+      "Abraxas grossulariata",
+      "11-spot Ladybird"
+    ]
+  },
+  "output": {
+    "body": {
+      "html": "<div class=\"content-wrapper\">\n  <section class=\"content\">\n    <style type=\"text/css\">.navbar-gray-dark { background-color: white; } .navbar-white { background-color: white; }<\/style>\n    <head>\n      <style>.row div {padding: 0.5% 0.5% 0.5% !important;}<\/style>\n    <\/head>\n    <div class=\"row\">\n      <div class=\"col-sm-3\">\n        <div id=\"ui_img\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n      <div class=\"col-sm-5\">\n        <div id=\"ui_mp\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n      <div class=\"col-sm-4\">\n        <div id=\"ui_tl\" class=\"shiny-html-output\"><\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n<\/div>",
+      "deps": [
+
+      ]
+    },
+    "out33c3f1d963492cad": {
+      "x": {
+        "options": {
+          "crs": {
+            "crsClass": "L.CRS.EPSG3857",
+            "code": null,
+            "proj4def": null,
+            "projectedBounds": null,
+            "options": {
+
+            }
+          }
+        },
+        "calls": [
+          {
+            "method": "addProviderTiles",
+            "args": [
+              "CartoDB",
+              null,
+              null,
+              {
+                "errorTileUrl": "",
+                "noWrap": false,
+                "detectRetina": false
+              }
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                53.1,
+                52.5
+              ],
+              [
+                6.05,
+                4.95
+              ],
+              {
+                "icon": [
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye"
+                ],
+                "markerColor": [
+                  "blue",
+                  "blue"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "View",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": false,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "Drachten - De Swetten",
+                "Zeevang - Kwadijk (dorp e.o.)"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Abraxas grossulariata/Drachten - De Swetten",
+                "Name:Abraxas grossulariata/Zeevang - Kwadijk (dorp e.o.)"
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                51.45
+              ],
+              [
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                3.6
+              ],
+              {
+                "icon": [
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera"
+                ],
+                "markerColor": [
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "<img src=\"https://observation.org/photos/7654002.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654003.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654014.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654015.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654016.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7598917.jpg\" align=\"center\" style=\"width: 120%;\"/>"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/Ritthem - dorp e.o."
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              57.6732,
+              -6.3483,
+              {
+                "icon": "fa-regular fa-compass",
+                "markerColor": "lightblue",
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              "<img src=\"https://observation.org/photos/7654008.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+              null,
+              null,
+              null,
+              "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addLayersControl",
+            "args": [
+              [
+
+              ],
+              [
+                "View",
+                "Photo"
+              ],
+              {
+                "collapsed": false,
+                "autoZIndex": true,
+                "position": "topright"
+              }
+            ]
+          }
+        ],
+        "limits": {
+          "lat": [
+            51.45,
+            57.6732
+          ],
+          "lng": [
+            -6.3483,
+            6.05
+          ]
+        },
+        "setView": [
+          [
+            57.6732,
+            -6.3483
+          ],
+          12,
+          [
+
+          ]
+        ]
+      },
+      "evals": [
+
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "leaflet-providers",
+          "version": "1.9.0",
+          "src": {
+            "href": "leaflet-providers-1.9.0"
+          },
+          "meta": null,
+          "script": "leaflet-providers_1.9.0.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "leaflet-providers-plugin",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-providers-plugin-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet-providers-plugin.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leaflet-awesomemarkers",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-awesomemarkers-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet.awesome-markers.min.js",
+          "stylesheet": "leaflet.awesome-markers.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "fontawesome",
+          "version": "4.7.0",
+          "src": {
+            "href": "fontawesome-4.7.0"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "font-awesome.min.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "out40234d0529c08f1e": {
+      "x": {
+        "options": {
+          "crs": {
+            "crsClass": "L.CRS.EPSG3857",
+            "code": null,
+            "proj4def": null,
+            "projectedBounds": null,
+            "options": {
+
+            }
+          }
+        },
+        "calls": [
+          {
+            "method": "addProviderTiles",
+            "args": [
+              "CartoDB",
+              null,
+              null,
+              {
+                "errorTileUrl": "",
+                "noWrap": false,
+                "detectRetina": false
+              }
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                51.35,
+                50.95,
+                53.1,
+                51.85,
+                51.85,
+                51.85,
+                50.85,
+                51.85,
+                51.95,
+                51.6,
+                52.5,
+                51.85,
+                51.85,
+                51.15
+              ],
+              [
+                6.15,
+                5.7,
+                6.05,
+                5.95,
+                5.75,
+                6,
+                5.65,
+                5.9,
+                5.95,
+                4.9,
+                4.95,
+                5.7,
+                5.85,
+                5.95
+              ],
+              {
+                "icon": [
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye"
+                ],
+                "markerColor": [
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "View",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": false,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "Venlo",
+                "België - Eisden Geneut e.o.",
+                "Drachten - De Swetten",
+                "Duffelt - Kekerdomse Waard",
+                "Ewijk - Ewijkse Plaat",
+                "Pannerden - Klompenwaard",
+                "Borgharen - Spekstraat e.o.",
+                "Ooijpolder - uiterwaarden strang Bisonbaai",
+                "Arnhem - Koningspleij",
+                "Dongen",
+                "Zeevang - Kwadijk (dorp e.o.)",
+                "Ewijk - Ewijkse Plaat",
+                "Lentse Waard",
+                "Roermond - Roerdal"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Acer negundo/Venlo",
+                "Name:Acer negundo/België - Eisden Geneut e.o.",
+                "Name:Abraxas grossulariata/Drachten - De Swetten",
+                "Name:Acer negundo/Duffelt - Kekerdomse Waard",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Pannerden - Klompenwaard",
+                "Name:Acer negundo/Borgharen - Spekstraat e.o.",
+                "Name:Acer negundo/Ooijpolder - uiterwaarden strang Bisonbaai",
+                "Name:Acer negundo/Arnhem - Koningspleij",
+                "Name:Acer negundo/Dongen",
+                "Name:Abraxas grossulariata/Zeevang - Kwadijk (dorp e.o.)",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Lentse Waard",
+                "Name:Acer negundo/Roermond - Roerdal"
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                53.3188,
+                53.3188,
+                53.3188,
+                53.3188,
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                51.45,
+                50.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.85,
+                51.8,
+                51.8
+              ],
+              [
+                15.4544,
+                15.4544,
+                15.4544,
+                15.4544,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                3.6,
+                5.65,
+                5.9,
+                5.95,
+                5.95,
+                5.95,
+                5.75,
+                5.75,
+                5.75,
+                5.75,
+                5.75,
+                5.75,
+                5.75,
+                5.75,
+                5.7,
+                5.7,
+                5.7,
+                5.7,
+                5.35,
+                5.35
+              ],
+              {
+                "icon": [
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera"
+                ],
+                "markerColor": [
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "<img src=\"https://observation.org/photos/7609265.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7609266.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7609267.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7609264.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654016.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654015.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654014.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654008.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654003.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654002.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7598917.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7488614.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7507814.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7547838.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7547836.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7547829.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7572655.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7572540.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7572535.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7572534.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615280.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615279.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615355.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615356.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615316.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615315.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615336.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7615337.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7644443.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7644444.jpg\" align=\"center\" style=\"width: 120%;\"/>"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Acer negundo/Poland - Zachodniopomorskie",
+                "Name:Acer negundo/Poland - Zachodniopomorskie",
+                "Name:Acer negundo/Poland - Zachodniopomorskie",
+                "Name:Acer negundo/Poland - Zachodniopomorskie",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/Ritthem - dorp e.o.",
+                "Name:Acer negundo/Borgharen - Spekstraat e.o.",
+                "Name:Acer negundo/Bemmel - Bemmelse Polder - oost",
+                "Name:Acer negundo/Gendtse Polder",
+                "Name:Acer negundo/Gendtse Polder",
+                "Name:Acer negundo/Gendtse Polder",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Ewijk - Ewijkse Plaat",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Overbetuwe - Loenense Buitenpolder",
+                "Name:Acer negundo/Heesselt - Heesseltsche Uiterwaarden Oost",
+                "Name:Acer negundo/Heesselt - Heesseltsche Uiterwaarden Oost"
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              51.85,
+              5.95,
+              {
+                "icon": "fa-regular fa-compass",
+                "markerColor": "lightblue",
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              "<img src=\"https://observation.org/photos/7547833.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+              null,
+              null,
+              null,
+              "Name:Acer negundo/Gendtse Polder",
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addLayersControl",
+            "args": [
+              [
+
+              ],
+              [
+                "View",
+                "Photo"
+              ],
+              {
+                "collapsed": false,
+                "autoZIndex": true,
+                "position": "topright"
+              }
+            ]
+          }
+        ],
+        "limits": {
+          "lat": [
+            50.85,
+            57.6732
+          ],
+          "lng": [
+            -6.3483,
+            15.4544
+          ]
+        },
+        "setView": [
+          [
+            51.85,
+            5.95
+          ],
+          12,
+          [
+
+          ]
+        ]
+      },
+      "evals": [
+
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "leaflet-providers",
+          "version": "1.9.0",
+          "src": {
+            "href": "leaflet-providers-1.9.0"
+          },
+          "meta": null,
+          "script": "leaflet-providers_1.9.0.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "leaflet-providers-plugin",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-providers-plugin-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet-providers-plugin.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leaflet-awesomemarkers",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-awesomemarkers-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet.awesome-markers.min.js",
+          "stylesheet": "leaflet.awesome-markers.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "fontawesome",
+          "version": "4.7.0",
+          "src": {
+            "href": "fontawesome-4.7.0"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "font-awesome.min.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "out4e52c786d950a1f7": {
+      "x": {
+        "filter": "none",
+        "container": "<table class=\"compact\">\n  <thead>\n    <tr>\n      <th>scientificName<\/th>\n      <th>frequency<\/th>\n      <th>open<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>",
+        "options": {
+          "dom": "t",
+          "info": false,
+          "autoWidth": false,
+          "lengthChange": true,
+          "sScrollY": "27vh",
+          "scrollCollapse": true,
+          "pageLength": 1,
+          "paging": false,
+          "scrollX": true,
+          "initComplete": "function(settings, json) {\n$(this.api().table().header()).css({'font-size': '80%'});\n}",
+          "order": [
+
+          ],
+          "orderClasses": false,
+          "lengthMenu": [
+            1,
+            10,
+            25,
+            50,
+            100
+          ],
+          "rowCallback": "function(row, data) {\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'font-size':'80%'});\nvar value=data[1]; $(this.api().cell(row, 1).node()).css({'font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-size':'80%'});\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'color':'black','font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-weight':'bold','color':'black','font-size':'80%'});\n}",
+          "ajax": {
+            "type": "POST",
+            "data": "function(d) {\nd.search.caseInsensitive = true;\nd.search.smart = true;\nd.escape = false;\nvar encodeAmp = function(x) { x.value = x.value.replace(/&/g, \"%26\"); }\nencodeAmp(d.search);\n$.each(d.columns, function(i, v) {encodeAmp(v.search);});\n}"
+          },
+          "serverSide": true,
+          "processing": true
+        },
+        "selection": {
+          "mode": "single",
+          "selected": null,
+          "target": "row"
+        }
+      },
+      "evals": [
+        "options.initComplete",
+        "options.rowCallback",
+        "options.ajax.data"
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "dt-core",
+          "version": "1.10.19",
+          "src": {
+            "href": "dt-core-1.10.19"
+          },
+          "meta": null,
+          "script": "js/jquery.dataTables.min.js",
+          "stylesheet": [
+            "css/jquery.dataTables.min.css",
+            "css/jquery.dataTables.extra.css"
+          ],
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "jquery",
+          "version": "1.11.3",
+          "src": {
+            "href": "jquery-1.11.3"
+          },
+          "meta": null,
+          "script": "jquery.min.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "crosstalk",
+          "version": "1.0.0",
+          "src": {
+            "href": "crosstalk-1.0.0"
+          },
+          "meta": null,
+          "script": "js/crosstalk.min.js",
+          "stylesheet": "css/crosstalk.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "outa473370ee576789d": {
+      "x": {
+        "options": {
+          "crs": {
+            "crsClass": "L.CRS.EPSG3857",
+            "code": null,
+            "proj4def": null,
+            "projectedBounds": null,
+            "options": {
+
+            }
+          }
+        },
+        "calls": [
+          {
+            "method": "addProviderTiles",
+            "args": [
+              "CartoDB",
+              null,
+              null,
+              {
+                "errorTileUrl": "",
+                "noWrap": false,
+                "detectRetina": false
+              }
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                53.15,
+                53.1,
+                52.75,
+                52.75,
+                52.5
+              ],
+              [
+                6.05,
+                6.05,
+                6.6,
+                6.4,
+                4.95
+              ],
+              {
+                "icon": [
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye",
+                  "fa-regular fa-eye"
+                ],
+                "markerColor": [
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue",
+                  "blue"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "View",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": false,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "Skûlenboarch",
+                "Drachten - De Swetten",
+                "Nieuw-Balinge - Mantingerveld",
+                "Dwingelderveld - Kraloërheide",
+                "Zeevang - Kwadijk (dorp e.o.)"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Coccinella undecimpunctata/Skûlenboarch",
+                "Name:Abraxas grossulariata/Drachten - De Swetten",
+                "Name:Coccinella undecimpunctata/Nieuw-Balinge - Mantingerveld",
+                "Name:Coccinella undecimpunctata/Dwingelderveld - Kraloërheide",
+                "Name:Abraxas grossulariata/Zeevang - Kwadijk (dorp e.o.)"
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              [
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                57.6732,
+                51.45,
+                52.8,
+                52.8
+              ],
+              [
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                -6.3483,
+                3.6,
+                4.65,
+                4.65
+              ],
+              {
+                "icon": [
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera",
+                  "fa-solid fa-camera"
+                ],
+                "markerColor": [
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen",
+                  "lightgreen"
+                ],
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              [
+                "<img src=\"https://observation.org/photos/7654003.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654008.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654014.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654015.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7654016.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7598917.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7655879.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+                "<img src=\"https://observation.org/photos/7655880.jpg\" align=\"center\" style=\"width: 120%;\"/>"
+              ],
+              null,
+              null,
+              null,
+              [
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+                "Name:Abraxas grossulariata/Ritthem - dorp e.o.",
+                "Name:Coccinella undecimpunctata/Zwanenwater - Zuidduinen",
+                "Name:Coccinella undecimpunctata/Zwanenwater - Zuidduinen"
+              ],
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addAwesomeMarkers",
+            "args": [
+              57.6732,
+              -6.3483,
+              {
+                "icon": "fa-regular fa-compass",
+                "markerColor": "lightblue",
+                "iconColor": "black",
+                "spin": false,
+                "squareMarker": false,
+                "iconRotate": 0,
+                "font": "monospace",
+                "prefix": "fa"
+              },
+              null,
+              "Photo",
+              {
+                "maxWidth": 300,
+                "minWidth": 50,
+                "autoPan": true,
+                "keepInView": true,
+                "closeButton": true,
+                "className": "",
+                "textsize": "10px"
+              },
+              "<img src=\"https://observation.org/photos/7654002.jpg\" align=\"center\" style=\"width: 120%;\"/>",
+              null,
+              null,
+              null,
+              "Name:Abraxas grossulariata/United Kingdom - Scotland - Isle of Skye",
+              {
+                "interactive": false,
+                "permanent": false,
+                "direction": "auto",
+                "opacity": 1,
+                "offset": [
+                  0,
+                  0
+                ],
+                "textsize": "10px",
+                "textOnly": false,
+                "className": "",
+                "sticky": true
+              },
+              null
+            ]
+          },
+          {
+            "method": "addLayersControl",
+            "args": [
+              [
+
+              ],
+              [
+                "View",
+                "Photo"
+              ],
+              {
+                "collapsed": false,
+                "autoZIndex": true,
+                "position": "topright"
+              }
+            ]
+          }
+        ],
+        "limits": {
+          "lat": [
+            51.45,
+            57.6732
+          ],
+          "lng": [
+            -6.3483,
+            6.6
+          ]
+        },
+        "setView": [
+          [
+            57.6732,
+            -6.3483
+          ],
+          12,
+          [
+
+          ]
+        ]
+      },
+      "evals": [
+
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "leaflet-providers",
+          "version": "1.9.0",
+          "src": {
+            "href": "leaflet-providers-1.9.0"
+          },
+          "meta": null,
+          "script": "leaflet-providers_1.9.0.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "leaflet-providers-plugin",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-providers-plugin-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet-providers-plugin.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leaflet-awesomemarkers",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-awesomemarkers-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet.awesome-markers.min.js",
+          "stylesheet": "leaflet.awesome-markers.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "fontawesome",
+          "version": "4.7.0",
+          "src": {
+            "href": "fontawesome-4.7.0"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "font-awesome.min.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "oute79975674116b7d9": {
+      "x": {
+        "filter": "none",
+        "container": "<table class=\"compact\">\n  <thead>\n    <tr>\n      <th>scientificName<\/th>\n      <th>frequency<\/th>\n      <th>open<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>",
+        "options": {
+          "dom": "t",
+          "info": false,
+          "autoWidth": false,
+          "lengthChange": true,
+          "sScrollY": "27vh",
+          "scrollCollapse": true,
+          "pageLength": 2,
+          "paging": false,
+          "scrollX": true,
+          "initComplete": "function(settings, json) {\n$(this.api().table().header()).css({'font-size': '80%'});\n}",
+          "order": [
+
+          ],
+          "orderClasses": false,
+          "lengthMenu": [
+            2,
+            10,
+            25,
+            50,
+            100
+          ],
+          "rowCallback": "function(row, data) {\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'font-size':'80%'});\nvar value=data[1]; $(this.api().cell(row, 1).node()).css({'font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-size':'80%'});\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'color':'black','font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-weight':'bold','color':'black','font-size':'80%'});\n}",
+          "ajax": {
+            "type": "POST",
+            "data": "function(d) {\nd.search.caseInsensitive = true;\nd.search.smart = true;\nd.escape = false;\nvar encodeAmp = function(x) { x.value = x.value.replace(/&/g, \"%26\"); }\nencodeAmp(d.search);\n$.each(d.columns, function(i, v) {encodeAmp(v.search);});\n}"
+          },
+          "serverSide": true,
+          "processing": true
+        },
+        "selection": {
+          "mode": "single",
+          "selected": null,
+          "target": "row"
+        }
+      },
+      "evals": [
+        "options.initComplete",
+        "options.rowCallback",
+        "options.ajax.data"
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "dt-core",
+          "version": "1.10.19",
+          "src": {
+            "href": "dt-core-1.10.19"
+          },
+          "meta": null,
+          "script": "js/jquery.dataTables.min.js",
+          "stylesheet": [
+            "css/jquery.dataTables.min.css",
+            "css/jquery.dataTables.extra.css"
+          ],
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "jquery",
+          "version": "1.11.3",
+          "src": {
+            "href": "jquery-1.11.3"
+          },
+          "meta": null,
+          "script": "jquery.min.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "crosstalk",
+          "version": "1.0.0",
+          "src": {
+            "href": "crosstalk-1.0.0"
+          },
+          "meta": null,
+          "script": "js/crosstalk.min.js",
+          "stylesheet": "css/crosstalk.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "outf15a807a26bd54a0": {
+      "x": {
+        "filter": "none",
+        "container": "<table class=\"compact\">\n  <thead>\n    <tr>\n      <th>scientificName<\/th>\n      <th>frequency<\/th>\n      <th>open<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>",
+        "options": {
+          "dom": "t",
+          "info": false,
+          "autoWidth": false,
+          "lengthChange": true,
+          "sScrollY": "27vh",
+          "scrollCollapse": true,
+          "pageLength": 2,
+          "paging": false,
+          "scrollX": true,
+          "initComplete": "function(settings, json) {\n$(this.api().table().header()).css({'font-size': '80%'});\n}",
+          "order": [
+
+          ],
+          "orderClasses": false,
+          "lengthMenu": [
+            2,
+            10,
+            25,
+            50,
+            100
+          ],
+          "rowCallback": "function(row, data) {\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'font-size':'80%'});\nvar value=data[1]; $(this.api().cell(row, 1).node()).css({'font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-size':'80%'});\nvar value=data[0]; $(this.api().cell(row, 0).node()).css({'color':'black','font-size':'80%'});\nvar value=data[2]; $(this.api().cell(row, 2).node()).css({'font-weight':'bold','color':'black','font-size':'80%'});\n}",
+          "ajax": {
+            "type": "POST",
+            "data": "function(d) {\nd.search.caseInsensitive = true;\nd.search.smart = true;\nd.escape = false;\nvar encodeAmp = function(x) { x.value = x.value.replace(/&/g, \"%26\"); }\nencodeAmp(d.search);\n$.each(d.columns, function(i, v) {encodeAmp(v.search);});\n}"
+          },
+          "serverSide": true,
+          "processing": true
+        },
+        "selection": {
+          "mode": "single",
+          "selected": null,
+          "target": "row"
+        }
+      },
+      "evals": [
+        "options.initComplete",
+        "options.rowCallback",
+        "options.ajax.data"
+      ],
+      "jsHooks": [
+
+      ],
+      "deps": [
+        {
+          "name": "dt-core",
+          "version": "1.10.19",
+          "src": {
+            "href": "dt-core-1.10.19"
+          },
+          "meta": null,
+          "script": "js/jquery.dataTables.min.js",
+          "stylesheet": [
+            "css/jquery.dataTables.min.css",
+            "css/jquery.dataTables.extra.css"
+          ],
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "jquery",
+          "version": "1.11.3",
+          "src": {
+            "href": "jquery-1.11.3"
+          },
+          "meta": null,
+          "script": "jquery.min.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "crosstalk",
+          "version": "1.0.0",
+          "src": {
+            "href": "crosstalk-1.0.0"
+          },
+          "meta": null,
+          "script": "js/crosstalk.min.js",
+          "stylesheet": "css/crosstalk.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "ui_img": {
+      "html": "<div class=\"col-sm-12\">\n  <div class=\"card bs4Dash card-olive\">\n    <div class=\"card-header\">\n      <h3 class=\"card-title\">Image Render<\/h3>\n    <\/div>\n    <div class=\"card-body\" style=\"height: 100%\">\n      <h4 class=\"text-center\" style=\"padding-top: 0;color: black;font-size: 14px; font-weight:400; font-weight:bold;\">Location: United Kingdom - Scotland - Isle of Skye<\/h4>\n      <h5 class=\"text-center\" style=\"padding-top: 0;color: black;font-size: 12px; font-weight:500; font-weight:bold;\">Date of Event: 2014-07-08<\/h5>\n      <img src=\"https://observation.org/photos/7654002.jpg\" align=\"center\" style=\"width: 100%; height: 10em;\"/>\n      <div id=\"oute79975674116b7d9\" style=\"width:100%; height:auto; \" class=\"datatables html-widget html-widget-output\"><\/div>\n    <\/div>\n  <\/div>\n  <script type=\"application/json\">{\"title\":\"Image Render\",\"status\":\"olive\",\"solidHeader\":true,\"width\":12,\"height\":\"100%\",\"collapsible\":false,\"closable\":false,\"maximizable\":false,\"gradient\":false}<\/script>\n<\/div>",
+      "deps": [
+        {
+          "name": "htmlwidgets",
+          "version": "1.5.1",
+          "src": {
+            "href": "htmlwidgets-1.5.1"
+          },
+          "meta": null,
+          "script": "htmlwidgets.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "jquery",
+          "version": "1.12.4",
+          "src": {
+            "href": "jquery-1.12.4"
+          },
+          "meta": null,
+          "script": "jquery.min.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "datatables-css",
+          "version": "0.0.0",
+          "src": {
+            "href": "datatables-css-0.0.0"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "datatables-crosstalk.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "datatables-binding",
+          "version": "0.11",
+          "src": {
+            "href": "datatables-binding-0.11"
+          },
+          "meta": null,
+          "script": "datatables.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        },
+        {
+          "name": "crosstalk",
+          "version": "1.0.0",
+          "src": {
+            "href": "crosstalk-1.0.0"
+          },
+          "meta": null,
+          "script": "js/crosstalk.min.js",
+          "stylesheet": "css/crosstalk.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        }
+      ]
+    },
+    "ui_mp": {
+      "html": "<div class=\"col-sm-12\">\n  <div class=\"card bs4Dash card-olive\">\n    <div class=\"card-header\">\n      <h3 class=\"card-title\">Location Map<\/h3>\n    <\/div>\n    <div class=\"card-body\" style=\"height: 100%\" color=\"olive\">\n      <div id=\"outa473370ee576789d\" style=\"width:100%; height:400px; \" class=\"leaflet html-widget html-widget-output\"><\/div>\n    <\/div>\n  <\/div>\n  <script type=\"application/json\">{\"title\":\"Location Map\",\"status\":\"olive\",\"solidHeader\":true,\"width\":12,\"height\":\"100%\",\"collapsible\":false,\"closable\":false,\"maximizable\":false,\"gradient\":false}<\/script>\n<\/div>",
+      "deps": [
+        {
+          "name": "htmlwidgets",
+          "version": "1.5.1",
+          "src": {
+            "href": "htmlwidgets-1.5.1"
+          },
+          "meta": null,
+          "script": "htmlwidgets.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "jquery",
+          "version": "1.12.4",
+          "src": {
+            "href": "jquery-1.12.4"
+          },
+          "meta": null,
+          "script": "jquery.min.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leaflet",
+          "version": "1.3.1",
+          "src": {
+            "href": "leaflet-1.3.1"
+          },
+          "meta": null,
+          "script": "leaflet.js",
+          "stylesheet": "leaflet.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leafletfix",
+          "version": "1.0.0",
+          "src": {
+            "href": "leafletfix-1.0.0"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "leafletfix.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "Proj4Leaflet",
+          "version": "1.0.1",
+          "src": {
+            "href": "Proj4Leaflet-1.0.1"
+          },
+          "meta": null,
+          "script": [
+            "proj4-compressed.js",
+            "proj4leaflet.js"
+          ],
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "rstudio_leaflet",
+          "version": "1.3.1",
+          "src": {
+            "href": "rstudio_leaflet-1.3.1"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": "rstudio_leaflet.css",
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": true
+        },
+        {
+          "name": "leaflet-binding",
+          "version": "2.0.3",
+          "src": {
+            "href": "leaflet-binding-2.0.3"
+          },
+          "meta": null,
+          "script": "leaflet.js",
+          "stylesheet": null,
+          "head": null,
+          "attachment": null,
+          "package": null,
+          "all_files": false
+        }
+      ]
+    },
+    "ui_tl": {
+      "html": "<div class=\"col-sm-12\">\n  <div class=\"card bs4Dash card-olive\">\n    <div class=\"card-header\">\n      <h3 class=\"card-title\">Timeline Render<\/h3>\n    <\/div>\n    <div class=\"card-body\" color=\"olive\" style=\"height: 100% width:400px;overflow-x: scroll;height:400px;overflow-y: scroll;\">\n      <div class=\"col-sm-100%\">\n        <div class=\"timeline timeline-inverse\" height=\"100%\">\n          <div>\n            <i class=\"fa fa-hourglass-end bg-danger\" role=\"presentation\" aria-label=\"hourglass-end icon\"><\/i>\n          <\/div>\n          <br/>\n          <br/>\n          <div class=\"time-label\">\n            <span status=\"info\">First occurence: 2014<\/span>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: United Kingdom - Scotland - Isle of Skye<\/div>\n              <div class=\"timeline-footer\">2014-07-08<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: Ritthem - dorp e.o.<\/div>\n              <div class=\"timeline-footer\">2014-07-13<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: Drachten - De Swetten<\/div>\n              <div class=\"timeline-footer\">2014-07-24<\/div>\n            <\/div>\n          <\/div>\n          <div>\n            <i class=\"fa fa-paint-brush bg-teal\" role=\"presentation\" aria-label=\"paint-brush icon\"><\/i>\n            <div class=\"timeline-item\">\n              <span class=\"time\">\n                <i class=\"fa fa-clock\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n                \n              <\/span>\n              <h3 class=\"timeline-header no-border\"><\/h3>\n              <div class=\"timeline-body\">Event: Zeevang - Kwadijk (dorp e.o.)<\/div>\n              <div class=\"timeline-footer\">2014-10-17<\/div>\n            <\/div>\n          <\/div>\n          <div class=\"time-label\">\n            <span status=\"info\">Last occurence: 2014<\/span>\n          <\/div>\n          <div>\n            <i class=\"fa fa-clock bg-secondary\" role=\"presentation\" aria-label=\"clock icon\"><\/i>\n          <\/div>\n        <\/div>\n      <\/div>\n    <\/div>\n  <\/div>\n  <script type=\"application/json\">{\"title\":\"Timeline Render\",\"status\":\"olive\",\"solidHeader\":true,\"width\":12,\"height\":\"100%\",\"collapsible\":false,\"closable\":false,\"maximizable\":false,\"gradient\":false}<\/script>\n<\/div>",
+      "deps": [
+        {
+          "name": "font-awesome",
+          "version": "5.15.3",
+          "src": {
+            "href": "font-awesome-5.15.3"
+          },
+          "meta": null,
+          "script": null,
+          "stylesheet": [
+            "css/all.min.css",
+            "css/v4-shims.min.css"
+          ],
+          "head": null,
+          "attachment": null,
+          "all_files": true
+        }
+      ]
+    }
+  },
+  "export": {
+
+  }
+}
