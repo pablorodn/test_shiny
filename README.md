@@ -115,7 +115,7 @@ def main():
 
 <h3><b> Plumber API </b></h3>
 
-<h5> The app request data to the database using an API, this api uses a docker container allowed also in a ec2 ubuntu server, the recipe to buid this docker its on the dockerfile (see dockerfile in repo), the api uses the package RMySQL to establish a connection by a pool and request the data with a query, this api was tested with postman </h5> 
+<h5> The app request data to the database using an API, this api uses a docker container allowed also in a ec2 ubuntu server, the recipe to buid this docker its on the dockerfile (see dockerfile in repo), the api uses the package RMySQL to establish a connection with a pool and request the data with a query, this api was tested with postman </h5> 
 
 <h4><b> Docker Container </b></h4>
 <h5> Container image and specifications</5>
@@ -163,7 +163,7 @@ get_query <- function(query){
 
 <h3><b> And thats it !!! </b></h3>
 
-<h4><b> This is the readme file for this development, if you have any doubts do not hesitate, just contact me pablorodriguezcv@gmail.com, hope to see you soon </b></h4>
+<h4><b> This is the readme file for this development, if you have any doubts do not hesitate, just contact me!!  pablorodriguezcv@gmail.com, hope to see you soon </b></h4>
 
 <h3><b> Pablo Rodríguez </b></h3>
 
