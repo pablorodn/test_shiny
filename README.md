@@ -1,4 +1,4 @@
-<h1><b>Shiny for Visualize Species</b></h1>
+<h1><b>Shiny for my application to Appsilon</b></h1>
 <h5> The scope of this repo is to explain the develop proccess of a Shiny app to visualize information about species,  the data comes from the Global Biodiversity Information Facility, at first there is a explanation about the tool, how it works and his features, after that will be a summary of the business/technical requirements and the infrastructure used for this case</h5>
 
 
@@ -36,6 +36,12 @@
 
 <h2>Technical requirements </h2>
 
+<p><em>-Default view when no species is selected yet should make sense to the user. It shouldn’t be just an empty map and plot. Please decide what you will display</em></p>
+
+
+![image](https://user-images.githubusercontent.com/113043356/189256855-c4f63b49-9cf5-426e-925d-2463c8566e3d.png)
+
+
 <p><em>-Add readme that will help potential future developers of this app</em></p>
 
 <h5> You're reading the readme file</h5>
@@ -43,6 +49,39 @@
 <p><em>-Deploy the app to shinyapps.io</em></p>
 
 <h5> The app is deployed into a aws ec2 spot machine file</h5>
+
+<p><em>-Decompose independent functionalities into shinyModules</em></p>
+<h5> There is a lot of shinymodules who support the UI and the server components (Headlines of app.R script)</h5> 
+
+![image](https://user-images.githubusercontent.com/113043356/189251990-3b0fd230-7514-4f12-a930-f456b166c17e.png)
+
+
+<p><em>-Add unit tests for the most important functions and cover edge cases.</em></p>
+<h5> Unit test have been performed, registered and saved, using package 'shinytest2' with multiple inputs and user cases (Folder 'test' on this repo)</h5> 
+<h5> here below a code example of unit-test </h5>
+
+```R
+library(shinytest2)
+
+test_that("{shinytest2} recording: test_shiny", {
+  app <- AppDriver$new(name = "test_shiny", height = 711, width = 1139)
+  app$set_inputs(selection = c("Abraxas grossulariata", "Acer negundo"))
+  app$set_inputs(selection = "Abraxas grossulariata")
+  app$set_inputs(selection = character(0))
+  app$set_inputs(customSwitch1 = TRUE)
+  app$set_inputs(customSwitch1 = FALSE)
+  app$expect_values()
+})
+```
+
+<h3><b>Extras</b></h3>
+
+<h4>Beautiful UI skill</h4>
+
+
+
+
+
 
 
 
