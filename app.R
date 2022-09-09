@@ -28,7 +28,8 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
   nameChoices=c(nameChoices$vernacularName,nameChoices$scientificName)
   nameChoices=nameChoices[which(!grepl("['._]+",nameChoices))]
   nameChoices=nameChoices[order(nameChoices)]
-  return(nameChoices)}
+  return(nameChoices)
+  }
   #Function to load information about the specie
   data_specie<-function(parameter){
     parameter=paste(paste0("'",parameter,"'"), collapse = ",")
@@ -37,27 +38,28 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     and po.vernacularName is not null and po.scientificName is not null
     order by po.eventDate")
     data=get_query(data)
-    return(data)}
+    return(data)
+    }
   #Function for render image_box
   image_box=function(data_specie,image_value){
+    
     if(colnames(data_specie)[ncol(data_specie)]!="accessURI"){
       data_specie$accessURI="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"}
-    tags$head(tags$style( type="text/css", "#image img {max-width: 100%; width: 100%; height: auto}" ))
+        tags$head(tags$style( type="text/css", "#image img {max-width: 100%; width: 100%; height: auto}" ))
     df=data_specie[which(!is.na(data_specie$scientificName)),]
-    df=inner_join(df %>%
-                   group_by(scientificName)%>%
-                   summarize("frequency"=sum(individualCount)),
-                 df %>%
-                   group_by(scientificName)%>%
-                   mutate(date = ymd(eventDate)) %>% 
-                   summarise(min = min(date),
-                             max = max(date))%>% 
-                   mutate(diff=1+as.numeric(difftime(max,min,units = "days")))
-    )
+      df=inner_join(df %>%
+        group_by(scientificName)%>%
+          summarize("frequency"=sum(individualCount)),
+            df %>%
+              group_by(scientificName)%>%
+                mutate(date = ymd(eventDate)) %>% 
+                  summarise(min = min(date),max = max(date))%>% 
+                    mutate(diff=1+as.numeric(difftime(max,min,units = "days")))
+                  )
     
     df<-left_join(data_specie %>%
       group_by(scientificName) %>%
-      summarize(images = n_distinct(accessURI)),df)
+        summarize(images = n_distinct(accessURI)),df)
     df$frequency=paste0(round(df$frequency/df$diff,2)," times/day")
     df=df[order(-df$images),]
     
@@ -75,32 +77,33 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     df_input<<-df
     tbl = renderDataTable({
       DT::datatable(df,
-                          class = 'compact',
-                          rownames=FALSE,
-                          extensions = list("Scroller"),
-                          options = list(dom='t',info=FALSE,autoWidth = FALSE,
-                                         lengthChange = TRUE,sScrollY = '27vh', scrollCollapse = TRUE,pageLength = nrow(df),paging = FALSE,
-                                         scrollX = T,initComplete = JS(
+                    class = 'compact',
+                    rownames=FALSE,
+                    extensions = list("Scroller"),
+                    options = list(dom='t',info=FALSE,autoWidth = FALSE,
+                    lengthChange = TRUE,sScrollY = '27vh', scrollCollapse = TRUE,pageLength = nrow(df),paging = FALSE,
+                    scrollX = T,initComplete = JS(
                                            "function(settings, json) {",
                                            "$(this.api().table().header()).css({'font-size': '80%'});",
                                            "}")),
-                          selection=list(mode="single", target="row"),
-                          filter = 'none',escape = FALSE,editable = FALSE)%>%
-      formatStyle(columns = c(1:ncol(df)), fontSize = '80%')%>%
-      formatStyle(1,color = 'black',fontSize = '80%')%>%
-      formatStyle(ncol(df),color = 'black',fontSize = '80%',fontWeight = 'bold')
-    })
-    
+                    selection=list(mode="single", target="row"),
+                    filter = 'none',escape = FALSE,editable = FALSE)%>%
+                      formatStyle(columns = c(1:ncol(df)), fontSize = '80%')%>%
+                        formatStyle(1,color = 'black',fontSize = '80%')%>%
+                          formatStyle(ncol(df),color = 'black',fontSize = '80%',fontWeight = 'bold')
+                          })
     
 
     if(colnames(data_specie)[ncol(data_specie)]=="accessURI"){
-    data_specie=filter(data_specie,accessURI==image_value)
-    dov=paste0("Date of Event: ",data_specie$eventDate)
-    data_specie=paste0(data_specie$locality)
+        data_specie=filter(data_specie,accessURI==image_value)
+        data_specie=data_specie[1,]
+        dov=paste0("Date of Event: ",data_specie$eventDate)
+        data_specie=paste0(data_specie$locality)
     }else{
-      data_specie="No Images!" 
-      dov=""
+        data_specie="No Images!" 
+        dov=""
     }
+    
     bs4Card(
       title = "Image Render",
       width = 12,
@@ -134,23 +137,24 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     }
 
     mymap <- renderLeaflet({
-      df=data_specie
       
+      df=data_specie
       df1=filter(df,status=="blue")
       df2=filter(df,status!="blue")
 
         map=leaflet() %>% 
-        addProviderTiles(providers$CartoDB)
+          addProviderTiles(providers$CartoDB)
         if(nrow(df1)>0){
-          icons_df1 <- awesomeIcons(
+            icons_df1 <- awesomeIcons(
             icon =df1$icon_parameter, 
             iconColor = 'black',
             markerColor = if_else(df1$status!="blue","lightgreen","blue"),
             library = 'fa')
           
-          map=addAwesomeMarkers(map,df1$longitudeDecimal,df1$latitudeDecimal,icon=icons_df1, popup =df1$locality,group = "View",
-                          options = popupOptions(closeButton = TRUE,textsize = "10px"),label =(paste0("Name:",df1$scientificName,"/",df1$locality)),labelOptions=labelOptions(textsize = "10px")) 
+            map=addAwesomeMarkers(map,df1$longitudeDecimal,df1$latitudeDecimal,icon=icons_df1, popup =df1$locality,group = "View",
+                                  options = popupOptions(closeButton = TRUE,textsize = "10px"),label =(paste0("Name:",df1$scientificName,"/",df1$locality)),labelOptions=labelOptions(textsize = "10px")) 
         }
+        
         if(nrow(df2)>0){
           
           icons_df2 <- awesomeIcons(
@@ -166,20 +170,18 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
           
           df_selected=df2[df2$accessURI==image_value,]
           df2=df2[df2$accessURI!=image_value, ]
-      map=addAwesomeMarkers(map,df2$longitudeDecimal,df2$latitudeDecimal,icon=icons_df2,popup =paste0('<img src="',df2$accessURI,'" align="center" style="width: 120%;"/>'),group = "Photo",
+          map=addAwesomeMarkers(map,df2$longitudeDecimal,df2$latitudeDecimal,icon=icons_df2,popup =paste0('<img src="',df2$accessURI,'" align="center" style="width: 120%;"/>'),group = "Photo",
                                     options = popupOptions(closeButton = T,textsize = "10px",keepInView = T),label =(paste0("Name:",df2$scientificName,"/",df2$locality)),labelOptions=labelOptions(textsize = "10px")) 
       
-      map=addAwesomeMarkers(map,df_selected$longitudeDecimal,df_selected$latitudeDecimal,icon=icon_selected,popup =paste0('<img src="',df_selected$accessURI,'" align="center" style="width: 120%;"/>'),group = "Photo",
+          map=addAwesomeMarkers(map,df_selected$longitudeDecimal,df_selected$latitudeDecimal,icon=icon_selected,popup =paste0('<img src="',df_selected$accessURI,'" align="center" style="width: 120%;"/>'),group = "Photo",
                             options = popupOptions(closeButton = T,textsize = "10px",keepInView = T),label =(paste0("Name:",df_selected$scientificName,"/",df_selected$locality)),labelOptions=labelOptions(textsize = "10px")) 
       
-      map=setView(map,df_selected$longitudeDecimal,df_selected$latitudeDecimal, zoom = 12)
-      
-      
-      }
+          map=setView(map,df_selected$longitudeDecimal,df_selected$latitudeDecimal, zoom = 12)
+                      }
       map=addLayersControl(map,
         overlayGroups = c("View", "Photo"),
         options = layersControlOptions(collapsed = FALSE)
-      )
+                          )
 
       map
     
@@ -201,7 +203,8 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
   #UI to render timeline
   timeline_box=function(data_specie,image_value){
     if(colnames(data_specie)[ncol(data_specie)]!="accessURI"){
-      data_specie$accessURI="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"}
+      data_specie$accessURI="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"
+                                                              }
     scientific_name=filter(data_specie,accessURI==image_value)
     scientific_name=scientific_name$scientificName
     data_specie=data_specie[data_specie$scientificName==scientific_name,]
@@ -209,14 +212,13 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     data_specie[is.na(data_specie$dummie),"dummie"]=data_specie$locality[is.na(data_specie$dummie)]
     data_specie$year=lubridate::year(data_specie$eventDate)
     data_specie[is.na(data_specie$accessURI)==T,"accessURI"]="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"
-    
-  
     min_year=min(data_specie$year)
     max_year=max(data_specie$year)
     result=lapply(1:nrow(data_specie), function(i){
         temp=data_specie[i,]
         glue('bs4TimelineItem(title="",icon=icon("paint-brush"),color = "teal",time="",footer="{temp$eventDate}","Event: {temp$locality}",border = F);')
-      })
+                })
+    
     result=do.call(rbind,result)
     
     bs4Card(
@@ -236,17 +238,13 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
                     lapply(1:length(result), function(i){
                     eval(parse(text = result[i]))
                     }),
-                    
                     bs4TimelineLabel(paste0("Last occurence: ",max_year), status = "info"),
                     timelineStart(color = "secondary")
         )
       )
     
   }
-  #UI to show empty info
-  empty_ui<-function(){
-    h4("There is no info about this specie for this feature")
-  }
+
   #Render buttons on DT
   shinyInput <- function(FUN, n, id, ...) {
     
@@ -271,7 +269,7 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
       border = F,
       fixed = FALSE,
       dashboard_ui()
-    ),
+                            ),
     sidebar = dashboardSidebar(disable = T),
     body = uiOutput("body")
 
@@ -281,7 +279,7 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
 
       updateSelectizeInput(
         session, "selection", choices=nameChoices(), server = T, 
-        options = list(maxOptions = 15,closeAfterSelect = TRUE),selected=c("Aardwolf") 
+        options = list(maxOptions = 15,closeAfterSelect = TRUE),selected=c("Tangara gyrola","Tityra semifasciata","Diglossa albilatera") 
       )
   
     observeEvent(input$select_button_dt,{
@@ -293,6 +291,9 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
       selectedRow=dplyr::filter(data_selected,scientificName==selectedRow)
       selectedRow=selectedRow[!is.na(selectedRow$accessURI),"accessURI"]
       
+      if(length(selectedRow)==0){
+        selectedRow=NULL
+      }
       if(is.null(selectedRow)){
         selectedRow='https://i.ibb.co/xmLwdHT/Imagen-1.jpg'
       }else{
@@ -319,9 +320,9 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
       if(!all(is.na(data_selected$accessURI))){
         parameter=data_selected$accessURI[is.na(data_selected$accessURI)==F]
         image_value=parameter[sample(1:length(parameter),1)]
-      }else{
+                                              }else{
         image_value="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"
-      }
+                                                  }
       return(image_value)
     })
     
@@ -336,9 +337,9 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
             column(3,uiOutput("ui_img")),
             column(5,uiOutput("ui_mp")),
             column(4,uiOutput("ui_tl"))
-          )
-        )
-      )
+                  )
+                    )
+                          )
 
     }
   

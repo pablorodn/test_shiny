@@ -1,7 +1,6 @@
 
 # Read SQL query or database table into a DataFrame
 # parameters
-# server: the merqueo server  to consult ('prod', 'shiny', 'dwh').
 # query: str SQL query to be executed or a table name.
 
 get_query <- function(query){

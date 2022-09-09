@@ -16,7 +16,6 @@ get_query = function(query){
     dbname="ab"),1,quiet = T)}
   tryCatch(
     expr = {
-      
       if (toupper(Sys.info()[1][[1]]) != 'WINDOWS' ){
         dbGetQuery(mydb,"set names utf8")
       }
