@@ -1,13 +1,15 @@
-<h2><b>Shiny for Visualize Species</b></h2>
-<br>
+<h1><b>Shiny for Visualize Species</b></h1>
 <h5> The scope of this repo is to explain the develop proccess of a Shiny app to visualize information about species,  the data comes from the Global Biodiversity Information Facility, at first there is a explanation about the tool, how it works and his features, after that will be a summary of the business/technical requirements and the infrastructure used for this case</h5>
 
 
-<h1>General View </h1>
+<h4>this app it's allowed in <a href="url">http://34.201.151.75:3838/test_shiny/</a><h4>
+
+<h2>General View </h2>
 
 
 ![image](https://user-images.githubusercontent.com/113043356/189246425-fefdad0e-7002-4305-97bb-17e2bae1cfa2.png)
 
+<br>
 
 <p><em>-Artifact Overview</em></p>
 
@@ -23,3 +25,21 @@
 <tr><td>5</td><td>Timeline who displays the occurrences for the selected species, at first load all the events for all the inputs selected, when the user selects a button at the table, displays only the events for the selected specie, mention the date and the location</td><td>Is a bs4card, also have a bs4Timeline with start/end events, this artifact also have and 'bs4TimelineItem' who is renderized by a lapply loop, (raw code parsed)</td></tr>
 </tbody>
 </table>
+
+<br>
+
+
+<h2>Technical requirements </h2>
+
+<p><em>-Add readme that will help potential future developers of this app</em></p>
+
+<h5> You're reading the readme file</h5>
+
+<p><em>-Deploy the app to shinyapps.io</em></p>
+
+<h5> The app is deployed into a aws ec2 spot machine file</h5>
+
+
+
+
+
