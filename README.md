@@ -115,7 +115,7 @@ def main():
 
 <h3><b> Plumber API </b></h3>
 
-<h5> The app request data to the database using an API, this api uses a docker container allowed also in a ec2 ubuntu server from free aws schema, the recipe to buid this docker its on the dockerfile (see dockerfile in repo), the api uses the package RMySQL to establish a connection by a pool and request the data with a query, this api was tested with postman </h5> 
+<h5> The app request data to the database using an API, this api uses a docker container allowed also in a ec2 ubuntu server, the recipe to buid this docker its on the dockerfile (see dockerfile in repo), the api uses the package RMySQL to establish a connection by a pool and request the data with a query, this api was tested with postman </h5> 
 
 <h4><b> Docker Container </b></h4>
 <h5> Container image and specifications</5>
@@ -124,10 +124,47 @@ def main():
 
 
 
+<h4><b> The API uses a connection who encrypts the password using the library 'safer' </b></h4>
+
+```R
+get_query = function(query){
+  mydb = {try_default(dbConnect(
+    RMySQL::MySQL(),
+    host = "database-1.ckd1e3sk7dwp.us-east-1.rds.amazonaws.com",
+    user = "admin",
+    password =decrypt_string("hUtjYeT9C5cSg9LAEuXhreKc1x/m+A0E8A==",codifier),
+    dbname="ab"),1,quiet = T)}
+    }
+```
+<h5> function get_query</5>
+
+<h4><b> The app request data to database using the api, and the api makes the request using the following script </b></h4>
+
+```R
+# Read SQL query or database table into a DataFrame
+# parameters
+# query: str SQL query to be executed or a table name.
+
+get_query <- function(query){
+  #' @description Read SQL query or database table into a DataFrame
+  #' @param query: str SQL query to be executed or a table name.
+  
+  request <- GET("http://54.159.47.24:8000/echo",
+                 query = list(n=query),
+                 encode = "json")
+  data <- content(request, as = 'text', encoding = 'UTF-8')
+  result <- as.data.frame(fromJSON(data))
+  return(result)
+}
+```
+
+<h4><b> The ubuntu server where the docker is loaded only allow connections from the aws ec2 instance where the app is working, the request return a json </b></h4>
 
 
-<h4><b> Docker Container </b></h4>
+<h3><b> And thats it !!! </b></h3>
 
+<h4><b> This is the readme file for this development, if you have any doubts do not hesitate, just contact me pablorodriguezcv@gmail.com, hope to see you soon </b></h4>
 
+<h3><b> Pablo Rodríguez </b></h3>
 
 
