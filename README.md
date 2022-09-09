@@ -2,7 +2,12 @@
 <h5> The scope of this repo is to explain the develop proccess of a Shiny app to visualize information about species,  the data comes from the Global Biodiversity Information Facility, at first there is a explanation about the tool, how it works and his features, after that will be a summary of the business/technical requirements and the infrastructure used for this case</h5>
 
 
-<h4>this app it's allowed in <a href="url">http://34.201.151.75:3838/test_shiny/</a><h4>
+
+
+<a href="http://34.201.151.75:3838/test_shiny/"><h4>open here!</h4></a>
+
+
+
 
 <h2>General View </h2>
 
