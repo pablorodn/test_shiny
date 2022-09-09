@@ -4,7 +4,7 @@
 
 
 
-<a href="http://34.201.151.75:3838/test_shiny/"><h4>open here!</h4></a>
+<a href="http://34.201.151.75:3838/test_shiny/"><h4>open the aplication using this link!</h4></a>
 
 
 
@@ -76,9 +76,24 @@ test_that("{shinytest2} recording: test_shiny", {
 
 <h3><b>Extras</b></h3>
 
-<h4>Beautiful UI skill</h4>
+<h4>Performance optimization skill</h4>
+<h5> The original dataset its up to 20gb, but data used in this development cointains the first 600.000 rows of the dataset, the raw data has been extracted using the wonderful Pandas doing every 100.000 lines in a loop, (Please see 'convert_csv.py' script), here below the function: </h5> 
 
 
+```Python
+def main():
+    helper =  FileSplitter(FileSettings(
+        file_name='/Users/pablorodriguez/Downloads/biodiversity-data/occurence.csv',
+        row_size=100000
+    ))
+})
+```
+<h5> The raw data was uploaded to a mysql database using free aws schema, the free schema only allows a limited quantity of rows, thats why this exercise only contains 600.000 rounds, the script used for upload the data is in the repo (Please see 'save_on_mysql.R') </h5> 
+
+<h5> The username and the password to access to the database is encrypted, with the use of 'safer' package, the database schema and the max num of rows  </h5> 
+
+
+![image](https://user-images.githubusercontent.com/113043356/189261506-24af0dee-be11-452d-acfa-a8c83161c1d2.png)
 
 
 
