@@ -4,17 +4,17 @@
     "created" : 1662663522808.000,
     "dirty" : false,
     "encoding" : "UTF8",
-    "folds" : "",
-    "hash" : "0",
+    "folds" : "23|26|30|21|\n32|35|39|16|\n41|46|117|6|\n119|44|199|2|\n201|49|244|2|\n246|23|248|2|\n250|43|256|2|\n258|8|277|3|\n",
+    "hash" : "341795570",
     "id" : "D4B707EA",
-    "lastKnownWriteTime" : 1662661517,
-    "last_content_update" : 1662661517,
+    "lastKnownWriteTime" : 1662688928,
+    "last_content_update" : 1662688928048,
     "path" : "~/Documents/GitHub/test_shiny/app.R",
     "project_path" : "app.R",
     "properties" : {
-        "cursorPosition" : "208,2",
+        "cursorPosition" : "298,41",
         "docOutlineVisible" : "0",
-        "scrollLine" : "200"
+        "scrollLine" : "285"
     },
     "read_only" : false,
     "read_only_alternatives" : [

@@ -40,6 +40,8 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     return(data)}
   #Function for render image_box
   image_box=function(data_specie,image_value){
+    if(colnames(data_specie)[ncol(data_specie)]!="accessURI"){
+      data_specie$accessURI="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"}
     tags$head(tags$style( type="text/css", "#image img {max-width: 100%; width: 100%; height: auto}" ))
     df=data_specie[which(!is.na(data_specie$scientificName)),]
     df=inner_join(df %>%
@@ -50,7 +52,7 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
                    mutate(date = ymd(eventDate)) %>% 
                    summarise(min = min(date),
                              max = max(date))%>% 
-                   mutate(diff=as.numeric(difftime(max,min,units = "days")))
+                   mutate(diff=1+as.numeric(difftime(max,min,units = "days")))
     )
     
     df<-left_join(data_specie %>%
@@ -198,6 +200,8 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
   }
   #UI to render timeline
   timeline_box=function(data_specie,image_value){
+    if(colnames(data_specie)[ncol(data_specie)]!="accessURI"){
+      data_specie$accessURI="https://i.ibb.co/xmLwdHT/Imagen-1.jpg"}
     scientific_name=filter(data_specie,accessURI==image_value)
     scientific_name=scientific_name$scientificName
     data_specie=data_specie[data_specie$scientificName==scientific_name,]
@@ -275,11 +279,9 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
   
   server = function(input, output,session) {
 
-    
-
       updateSelectizeInput(
         session, "selection", choices=nameChoices(), server = T, 
-        options = list(maxOptions = 20,closeAfterSelect = TRUE),selected=c("Abraxas grossulariata","Acer negundo") 
+        options = list(maxOptions = 15,closeAfterSelect = TRUE),selected=c("Aardwolf") 
       )
   
     observeEvent(input$select_button_dt,{
@@ -290,10 +292,15 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
       selectedRow=as.character(selectedRow)
       selectedRow=dplyr::filter(data_selected,scientificName==selectedRow)
       selectedRow=selectedRow[!is.na(selectedRow$accessURI),"accessURI"]
-      selectedRow=sample(selectedRow,1)
       
+      if(is.null(selectedRow)){
+        selectedRow='https://i.ibb.co/xmLwdHT/Imagen-1.jpg'
+      }else{
+        selectedRow=sample(selectedRow,1)
+      }
       output$ui_img<-renderUI(image_box(data_selected,selectedRow))
       output$ui_mp<-renderUI(map_box(data_selected,selectedRow))
+      
       output$ui_tl<-renderUI(timeline_box(data_selected,selectedRow))
     })
     
@@ -306,7 +313,7 @@ source(file = glue("{getwd()}/get_query.R"), local=TRUE)
     
       
     data_selected<<-data_specie(input$selection)
-    
+
     image_value<-reactive({
         
       if(!all(is.na(data_selected$accessURI))){

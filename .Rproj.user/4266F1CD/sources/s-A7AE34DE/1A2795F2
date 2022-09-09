@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662694603734.000,
+    "dirty" : false,
+    "encoding" : "UTF8",
+    "folds" : "",
+    "hash" : "2752612659",
+    "id" : "1A2795F2",
+    "lastKnownWriteTime" : 1662694621,
+    "last_content_update" : 1662694621731,
+    "path" : "~/Documents/GitHub/test_shiny/dockerfile",
+    "project_path" : "dockerfile",
+    "properties" : {
+        "cursorPosition" : "17,26",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}
