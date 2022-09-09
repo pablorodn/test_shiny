@@ -74,9 +74,14 @@ test_that("{shinytest2} recording: test_shiny", {
 })
 ```
 
-<h3><b>Extras</b></h3>
+<h2><b>Extras</b></h2>
+
+
 
 <h4>Performance optimization skill</h4>
+
+<h3><b>MySQL Database</b></h3>
+
 <h5> The original dataset its up to 20gb, but data used in this development cointains the first 600.000 rows of the dataset, the raw data has been extracted using the wonderful Pandas doing every 100.000 lines in a loop, (Please see 'convert_csv.py' script), here below the function: </h5> 
 
 
@@ -100,13 +105,28 @@ def main():
 
 
 <h4>Infrastructure skill</h4>
+<h3><b>AWS EC2 Ubuntu Server </b></h3>
+
 <h5> The app is working into a  ec2 ubuntu server from free aws schema, was released using "shinyserver", the instance have limited resources (ram and cpu), but have a good performance in production, some packages have to be installed from ubuntu console because they have many dependencies, the security group its open and the instance is open to the internet</h5> 
 
 ![image](https://user-images.githubusercontent.com/113043356/189264002-dc97fe03-7978-4085-91f4-c5ffaa30b1a8.png)
 
 <h5> The URL of the app is : http://34.201.151.75:3838/test_shiny/ </h5> 
 
+<h3><b> Plumber API </b></h3>
 
+<h5> The app request data to the database using an API, this api uses a docker container allowed also in a ec2 ubuntu server from free aws schema, the recipe to buid this docker its on the dockerfile (see dockerfile in repo), the api uses the package RMySQL to establish a connection by a pool and request the data with a query, this api was tested with postman </h5> 
+
+<h4><b> Docker Container </b></h4>
+<h5> Container image and specifications</5>
+
+![image](https://user-images.githubusercontent.com/113043356/189266529-0d474f19-4784-4509-aecd-13e1e56f111f.png)
+
+
+
+
+
+<h4><b> Docker Container </b></h4>
 
 
 
