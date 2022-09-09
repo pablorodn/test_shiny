@@ -99,6 +99,15 @@ def main():
 
 
 
+<h4>Infrastructure skill</h4>
+<h5> The app is working into a  ec2 ubuntu server from free aws schema, was released using "shinyserver", the instance have limited resources (ram and cpu), but have a good performance in production, some packages have to be installed from ubuntu console because they have many dependencies, the security group its open and the instance is open to the internet</h5> 
+
+![image](https://user-images.githubusercontent.com/113043356/189264002-dc97fe03-7978-4085-91f4-c5ffaa30b1a8.png)
+
+<h5> The URL of the app is : http://34.201.151.75:3838/test_shiny/ </h5> 
+
+
+
 
 
 
