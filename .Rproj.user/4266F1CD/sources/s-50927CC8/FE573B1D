@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662813219748.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "FE573B1D",
+    "lastKnownWriteTime" : 140478751502640,
+    "last_content_update" : 1662813219748,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "82DABE9C",
+        "caption" : "chunked",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=chunked&cache_key=82DABE9C",
+        "displayedObservations" : "600000",
+        "environment" : "",
+        "expression" : "chunked",
+        "object" : "chunked",
+        "preview" : "0",
+        "totalObservations" : "600000",
+        "variables" : "37"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

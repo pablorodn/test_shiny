@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662811003763.000,
+    "dirty" : false,
+    "encoding" : "UTF8",
+    "folds" : "",
+    "hash" : "428208601",
+    "id" : "9F26A1FA",
+    "lastKnownWriteTime" : 1662814735,
+    "last_content_update" : 1662814735558,
+    "path" : "~/Documents/GitHub/test_shiny/save_on_mysql.R",
+    "project_path" : "save_on_mysql.R",
+    "properties" : {
+        "cursorPosition" : "13,12",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

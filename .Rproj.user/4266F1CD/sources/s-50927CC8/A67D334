@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1662814090842.000,
+    "dirty" : false,
+    "encoding" : "UTF8",
+    "folds" : "9|28|29|0|\n",
+    "hash" : "0",
+    "id" : "A67D334",
+    "lastKnownWriteTime" : 1662814744,
+    "last_content_update" : 1662814744368,
+    "path" : "~/Documents/GitHub/test_shiny/api.R",
+    "project_path" : "api.R",
+    "properties" : {
+        "cursorPosition" : "31,0",
+        "scrollLine" : "2"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

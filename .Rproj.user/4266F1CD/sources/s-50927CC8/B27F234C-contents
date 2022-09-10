@@ -11,14 +11,17 @@ con=dbConnect(
   RMySQL::MySQL(),
   host = "database-2.ckd1e3sk7dwp.us-east-1.rds.amazonaws.com",
   user = "admin",
-  password =decrypt_string("22+K19q9RHS0VRZVx/7hKeKc1x/mu1JT8R4=",codifier),
+  password ="pablorod32",
   dbname="ab"
 )
 
 multimedia <- read_csv("multimedia.csv")
 #Read only the first 4 million of occurrences
 
+mt="select * from ab.chunked_multimedia cm"
 
+a=dbReadTable(con,"chunked_multimedia")
+b=dbReadTable(con,"chunked_occurence")
 
 
 list=list.files("/Users/pablorodriguez/Downloads/biodiversity-data/")
@@ -26,14 +29,14 @@ list=list.files("/Users/pablorodriguez/Downloads/biodiversity-data/")
 #Write on db
 temp_m=data.frame()
 for(i in 1:6){
-df1=read_csv(paste0("/Users/pablorodriguez/Downloads/biodiversity-data/",list[i]))
-df1=df1[,-1]
-dbWriteTable(con,"chunked_occurence",df1,row.names = FALSE,append=T)
-#Find the multimedia ids on dataset_occurence
-
-#parameter=which(multimedia$CoreId %in% df1$id)
-#temp=multimedia[parameter,]
-#temp_m=rbind(temp_m,temp)
+  df1=read_csv(paste0("/Users/pablorodriguez/Downloads/biodiversity-data/",list[i]))
+  df1=df1[,-1]
+  dbWriteTable(con,"chunked_occurence",chunked,row.names = FALSE,append=T)
+  #Find the multimedia ids on dataset_occurence
+  
+  #parameter=which(multimedia$CoreId %in% df1$id)
+  #temp=multimedia[parameter,]
+  #temp_m=rbind(temp_m,temp)
 }
 
 #Save the multimedia
